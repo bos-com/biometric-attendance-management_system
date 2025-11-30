@@ -97,6 +97,7 @@ const VideoCapture = () => {
         muted
         playsInline
       />
+      
     </div>
   );
 };
