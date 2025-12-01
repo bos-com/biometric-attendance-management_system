@@ -10,10 +10,14 @@ import VideoCapture from '@/components/VideoCapture/VideoCapture';
 
 const AttendancePage = () => {
   const router = useRouter();
-//   const { lecturer, loading, signOut } = useLecturerAuth();
+  const lecturer = localStorage.getItem("lecturerToken");
+  const signOut = () => {
+    localStorage.removeItem("lecturerToken");
+    router.replace('/auth/signin');
+  };
   const classes = useQuery(
     api.classes.listForLecturer,
-    lecturer ? { lecturerId: lecturer._id } : 'skip',
+    lecturer ? { lecturerId: lecturer as Id<"lecturers"> } : 'skip',
   );
   const ensureLiveSession = useMutation(api.sessions.ensureLiveSession);
 
@@ -22,11 +26,7 @@ const AttendancePage = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !lecturer) {
-      router.replace('/auth/signin');
-    }
-  }, [lecturer, loading, router]);
+ 
 
   const classOptions = useMemo<Doc<'classes'>[]>(() => classes ?? [], [classes]);
 

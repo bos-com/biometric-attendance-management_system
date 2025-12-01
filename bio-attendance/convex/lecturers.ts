@@ -67,7 +67,7 @@ export const createLecturer = mutation({
   },
 });
 
-        export const AuthenticateUser = action({
+export const AuthenticateUser = action({
                 args:{email:v.string(), password:v.string()},
                 handler:async(ctx,args): Promise<Response>=>{
                         const user = await ctx.runQuery(api.lecturers.getByEmail, {
@@ -82,15 +82,23 @@ export const createLecturer = mutation({
                         if (!isMatch) {
                           return { success:false ,status: 401,message: "Invalid Credentials",user:null};
                 }
+                await ctx.runMutation(api.lecturers.createSession, { lecturerId: user.user._id });
                    return { success:true ,status: 201,message: "Success",user:user.user };
 }
 })
 
-export const createSession = internalMutation({
+export const createSession = mutation({
   args: { lecturerId: v.id("lecturers") },
   handler: async (ctx, args) => {
     const token = generateToken();
     const expiresAt = Date.now() + SESSION_TTL_MS;
+    const existingSessions = await ctx.db
+      .query("lecturerSessions")
+      .withIndex("by_lecturer", (q) => q.eq("lecturerId", args.lecturerId))
+      .collect();
+        for (const session of existingSessions) {
+        await ctx.db.delete(session._id);
+        }
     await ctx.db.insert("lecturerSessions", {
       lecturerId: args.lecturerId,
       token,
