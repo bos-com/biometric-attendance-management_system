@@ -54,6 +54,7 @@ const useLecturer = () => {
                         if (!result.success) {
                                 return { success: false, message: result.message, status: result.status };
                         }
+                        localStorage.setItem("lecturerToken", result.user ? result.user._id : "");
                         return { success: true, message: result.message, status: result.status, user: result.user };
                 } catch (error) {
                         return { success: false, message: String(error), status: 500 };
