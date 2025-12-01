@@ -26,7 +26,7 @@ const VideoCapture = () => {
       faceapi.nets.faceExpressionNet.loadFromUri("/model"),
     ]).then(startVideo);
 
-    videoRef.current?.addEventListener("play", () => {
+    const handlePlay = () => {
       const ensureReady = () => {
         if (!videoRef.current) return;
 
@@ -73,16 +73,26 @@ const VideoCapture = () => {
           faceapi.draw.drawDetections(overlay, resized);
           faceapi.draw.drawFaceLandmarks(overlay, resized);
           faceapi.draw.drawFaceExpressions(overlay, resized);
-        }, 100);
+        }, 1);
 
         // Store interval id so you can clear it
         overlay.dataset.intervalId = String(intervalId);
       };
 
       ensureReady();
-    });
+    };
 
-    return () => stream?.getTracks().forEach((track) => track.stop());
+    const videoElement = videoRef.current;
+    videoElement?.addEventListener("play", handlePlay);
+
+    return () => {
+      stream?.getTracks().forEach((track) => track.stop());
+      videoElement?.removeEventListener("play", handlePlay);
+      const intervalId = canvasRef.current?.dataset.intervalId;
+      if (intervalId) {
+        clearInterval(Number(intervalId));
+      }
+    };
   }, []);
 
   return (
