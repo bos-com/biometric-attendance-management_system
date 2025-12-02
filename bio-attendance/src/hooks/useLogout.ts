@@ -17,7 +17,7 @@ const useLogout = () => {
                                 throw new Error('Failed to delete session');
                         }
                         await deleteSession({lecturerId:lecturerId as Id<"lecturers">});
-                        router.replace("/");     // avoid adding history entry
+                        router.replace("/signin");     // avoid adding history entry
                         router.refresh();   // force a full page reload
                 } catch (error) {
                         console.error('Error during session deletion:', error);
