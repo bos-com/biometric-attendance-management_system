@@ -22,7 +22,9 @@ type Response = {
             passwordHash: string,
             staffId?: string,
             _creationTime: number,
+            role?:string
   }|null
+  token?: string | null;
 };
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -62,6 +64,7 @@ export const createLecturer = mutation({
       email: args.email,
       passwordHash:args.password,
         staffId: args.staffId,
+        role:"lecture"
     });
     return { success: true, message: "Lecturer created successfully"  }; 
   },
@@ -82,9 +85,23 @@ export const AuthenticateUser = action({
                         if (!isMatch) {
                           return { success:false ,status: 401,message: "Invalid Credentials",user:null};
                 }
-                await ctx.runMutation(api.lecturers.createSession, { lecturerId: user.user._id });
-                   return { success:true ,status: 201,message: "Success",user:user.user };
+                   const session = await ctx.runMutation(api.lecturers.createSession, { lecturerId: user.user._id });
+                   console.log("Generated session token:", session.token);
+                     return { success:true ,status: 201,message: "Success",user:user.user, token: session?.token ?? null };
 }
+})
+
+export const GetLecturerById = query({
+        args:{
+                id:v.id("lecturers"),
+        },
+        handler:async(ctx,args)=>{
+                const lecturer = await ctx.db.get(args.id);
+                if(!lecturer){
+                        throw new ConvexError("Lecturer not found");
+                }
+                return lecturer;
+        }
 })
 
 export const createSession = mutation({
@@ -130,16 +147,17 @@ export const profile = query({
       _id: lecturer._id,
       fullName: lecturer.fullName,
       email: lecturer.email,
+      staffId: lecturer.staffId,
     };
   },
 });
 
 export const signOut = mutation({
-  args: { token: v.string() },
+  args: { lecturerId: v.id("lecturers"), },
   handler: async (ctx, args) => {
     const session = await ctx.db
       .query("lecturerSessions")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .withIndex("by_lecturer", (q) => q.eq("lecturerId", args.lecturerId))
       .unique();
 
     if (session) {
