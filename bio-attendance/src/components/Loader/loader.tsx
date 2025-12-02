@@ -4,7 +4,7 @@ import { Oval } from 'react-loader-spinner';
 const loader = () => {
   return (
      <div className="flex  opacity-95 w-full h-full items-center justify-center animate-pulse">
-                            <div className="flex"><h1 className='text-sm md:text-2xl text-dark  '>Sh</h1></div>
+                            <div className="flex"><h1 className='text-sm md:text-2xl text-dark  '>Bi</h1></div>
                             <div className="flex">
                                     <Oval
                                             visible={true}
@@ -15,7 +15,7 @@ const loader = () => {
                                             ariaLabel="oval-loading"
                                             />
                             </div>
-                                            <div className="flex text-sm md:text-2xl text-dark  ">p<span className="text-gold">Cheap</span>.  .  .</div>
+                                            <div className="flex text-sm md:text-2xl text-dark  ">metric<span className="text-gold">Attendance</span></div>
                                     </div>
   )
 }

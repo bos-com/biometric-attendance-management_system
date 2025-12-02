@@ -11,13 +11,20 @@ import {
   DropdownMenuTrigger,
 } from "@/adminComponents/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/adminComponents/ui/avatar"
-import { GraduationCap, Plus, Bell, Settings, LogOut, User, ExternalLink } from "lucide-react"
+import { GraduationCap, Plus, Bell, Settings, LogOut as SignOut, User, ExternalLink } from "lucide-react"
+import { useLecturerSession } from '@/hooks/useLecturerSession';
+import useGetLecturer from "@/hooks/useGetLecturer"
+import { Id } from "@/convex/_generated/dataModel"
+import useLogout from "@/hooks/useLogout"
 
 interface DashboardHeaderProps {
   onCreateSession?: () => void
 }
 
 export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
+  const {session} = useLecturerSession();
+     const Lecturer = useGetLecturer(session?.userId as Id<"lecturers">);
+        const {LogOut} = useLogout();
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-white">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -62,15 +69,20 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary/10 text-primary">JD</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                    {Lecturer.user?.fullName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Dr. John Doe</p>
-                    <p className="text-xs leading-none text-muted-foreground">john.doe@university.edu</p>
+                    <p className="text-sm font-medium leading-none">{Lecturer.user?.fullName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{Lecturer.user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -89,8 +101,10 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
                     Attendance Module
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
+                <DropdownMenuItem className="text-destructive"
+                onClick={() => LogOut(Lecturer.user?._id as Id<"lecturers">)}
+                >
+                  <SignOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>

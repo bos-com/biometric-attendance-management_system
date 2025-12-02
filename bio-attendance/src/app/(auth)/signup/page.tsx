@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { User, Mail, Lock, AlertCircle, Loader2, GraduationCap, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
 
 const SignupPage = () => {
   const router = useRouter()
@@ -49,7 +50,7 @@ const SignupPage = () => {
         if (!res.success) {
                 throw new Error(res.message)
         }
-        router.push("/attendance")
+        router.push("/admin")
       });
     } catch (err) {
       console.error(err)
@@ -67,16 +68,16 @@ const SignupPage = () => {
   ]
 
   return (
-    <main className="flex h-screen w-full md:my-0 md:p-12  ">
+    <main className="flex h-screen w-full md:my-0   ">
       <div className="flex mx-auto  h-full flex-col md:flex-row w-full  ">
        {/* Left Panel - Branding */}
-      <div className="hidden items-center lg:flex lg:w-1/2 rounded-l-2xl bg-primary flex-col justify-between md:p-12 text-primary-foreground">
+      <div className="hidden items-center lg:flex lg:w-1/2  bg-primary flex-col justify-between md:p-12 text-primary-foreground">
         <div className="flex items-center" >
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground/10">
-              <GraduationCap className="h-7 w-7" />
+            <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-primary-foreground/10">
+            <Image src="/logo.png" width={500} height={500} alt="logo"  />
+              {/* <GraduationCap className="h-7 w-7" /> */}
             </div>
-            <span className="text-2xl font-bold">ClassRoom</span>
           </div>
         </div>
 
@@ -118,16 +119,17 @@ const SignupPage = () => {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex w-full lg:w-1/2 rounded-r-2xl items-center justify-center bg-background ">
+      <div className="flex w-full lg:w-1/2  items-center justify-center bg-background ">
         <Card className="w-full max-w-md border-0 shadow-none lg:border lg:shadow-sm  ">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex lg:hidden items-center gap-2 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <GraduationCap className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
+                <Image src="/logo.png" width={500} height={500} alt="logo"  />
+                {/* <GraduationCap className="h-5 w-5 text-primary-foreground" /> */}
               </div>
-              <span className="text-xl font-bold">ClassRoom</span>
+              <span className="text-xl text-red-500 font-bold">Bugema University</span>
             </div>
-            <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
+            <CardTitle className="text-2xl items-center font-bold">Create your account</CardTitle>
           </CardHeader>
 
           <CardContent>
