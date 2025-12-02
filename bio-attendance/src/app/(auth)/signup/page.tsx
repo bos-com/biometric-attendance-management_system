@@ -49,7 +49,7 @@ const SignupPage = () => {
         if (!res.success) {
                 throw new Error(res.message)
         }
-        router.push("/attendance")
+        router.push("/admin")
       });
     } catch (err) {
       console.error(err)

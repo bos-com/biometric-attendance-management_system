@@ -29,7 +29,7 @@ const SigninPage = () => {
         setSubmitting(false)
         return
       }
-      router.push("/attendance")
+      router.push("/admin")
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "Unable to sign in")
