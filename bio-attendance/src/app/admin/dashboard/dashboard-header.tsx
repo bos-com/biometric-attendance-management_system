@@ -14,12 +14,12 @@ import { Avatar, AvatarFallback } from "@/adminComponents/ui/avatar"
 import { GraduationCap, Plus, Bell, Settings, LogOut, User, ExternalLink } from "lucide-react"
 
 interface DashboardHeaderProps {
-  onCreateSession: () => void
+  onCreateSession?: () => void
 }
 
 export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+    <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-white">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}

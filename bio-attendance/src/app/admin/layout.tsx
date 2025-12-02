@@ -1,7 +1,7 @@
 "use client";
 import { AppSidebar } from "@/adminComponents/app-sidebar";
 import { SidebarProvider,SidebarTrigger } from "@/adminComponents/ui/sidebar";
-
+import { DashboardHeader } from "./dashboard/dashboard-header"
 
 export default function ProfileLayout({
   children,
@@ -15,9 +15,10 @@ export default function ProfileLayout({
         <SidebarProvider >
         <AppSidebar   />
       <main className="flex-1 overflow-y-auto">
-        <SidebarTrigger className="absolute z-50 bg-dark text-white bg-blue-800 top-[13%] " />
+        <DashboardHeader />
+        <SidebarTrigger className="absolute z-50 w-10 h-10 text-white bg-blue-800 -ml-5 hover:scale-125 hover:cursor-pointer top-[13%] " />
         {children}
       </main>
       </SidebarProvider>
-    </div>
+    </div>      
   );}
