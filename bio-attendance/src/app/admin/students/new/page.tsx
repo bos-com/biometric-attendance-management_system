@@ -409,6 +409,7 @@ const StudentRegistrationPage = () => {
                     id="photo-upload"
                     type="file"
                     accept="image/*"
+                    multiple={true}
                     onChange={handlePhotoChange}
                     className="hidden"
                   />

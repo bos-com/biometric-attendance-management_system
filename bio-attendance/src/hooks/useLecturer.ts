@@ -1,3 +1,5 @@
+"use client"
+
 import { api } from "../../convex/_generated/api"; 
 import { useAction, useMutation, useQuery } from "convex/react";
 import bcrypt from "bcryptjs";
@@ -8,6 +10,7 @@ interface user {
         password: string,
         phoneNumber?: string,
         fullName: string,
+        role?:string
 }
 interface res {
         success: boolean;
@@ -19,7 +22,9 @@ interface res {
                     email: string,
                     passwordHash: string,
                     staffId?: string,
+                    role?:string
                 }|null;
+        token?: string | null;
         }     
 const useLecturer = () => {
         const create = useMutation(api.lecturers.createLecturer);
@@ -54,8 +59,26 @@ const useLecturer = () => {
                         if (!result.success) {
                                 return { success: false, message: result.message, status: result.status };
                         }
-                        localStorage.setItem("lecturerToken", result.user ? result.user._id : "");
-                        return { success: true, message: result.message, status: result.status, user: result.user };
+                                // Prefer storing the session token returned from the server. Fall back to user id if token absent.
+                                const token = result.token;
+                                console.log("Storing lecturer token:", token);
+
+                                try {
+                                         await fetch('/api/createsession', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                        userId: result?.user?._id,
+                                                        role: result?.user?.role,
+                                                        fullName: result?.user?.fullName,
+                                }),
+                        });
+                                        localStorage.setItem("lecturerToken", token ?? "");
+
+                                } catch (e) {
+                                         return { success: false, message: result.message, status: result.status, user: null, token: null };
+                                }
+                                return { success: true, message: result.message, status: result.status, user: result.user, token: (result as any).token };
                 } catch (error) {
                         return { success: false, message: String(error), status: 500 };
                 }

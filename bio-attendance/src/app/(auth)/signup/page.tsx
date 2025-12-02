@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
 import  useCreateLecturer  from "@/hooks/useLecturer"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,7 @@ const SignupPage = () => {
   const [formState, setFormState] = useState({
     fullName: "",
     email: "",
+    staffId: "",
     password: "",
     confirmPassword: "",
   })
@@ -26,6 +27,11 @@ const SignupPage = () => {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    if (!formState.staffId.trim()) {
+      setError("Staff ID is required")
+      return
+    }
+
     if (formState.password !== formState.confirmPassword) {
       setError("Passwords do not match")
       return
@@ -37,7 +43,7 @@ const SignupPage = () => {
       await createLecturer({
         fullName: formState.fullName.trim(),
         email: formState.email.trim(),
-        staffId: "",
+        staffId: formState.staffId.trim(),
         password: formState.password,
       }).then((res) => {
         if (!res.success) {
@@ -99,6 +105,16 @@ const SignupPage = () => {
         </div>
 
         <p className="text-sm text-primary-foreground/60">Trusted by 10,000+ educators worldwide</p>
+         <p className="text-center text-sm text-muted-foreground">
+                By signing up, you agree to our{" "}
+                <Link href="/terms" className="font-medium text-white hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="font-medium text-white hover:underline">
+                  Privacy Policy
+                </Link>
+              </p>
       </div>
 
       {/* Right Panel - Form */}
@@ -134,6 +150,22 @@ const SignupPage = () => {
                     placeholder="Dr. John Smith"
                     value={formState.fullName}
                     onChange={(event) => setFormState((prev) => ({ ...prev, fullName: event.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="staffId">Staff ID</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="staffId"
+                    type="text"
+                    required
+                    placeholder="BUG/STAFF/1234"
+                    value={formState.staffId}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, staffId: event.target.value }))}
                     className="pl-10"
                   />
                 </div>
@@ -201,16 +233,6 @@ const SignupPage = () => {
                 )}
               </Button>
 
-              <p className="text-center text-sm text-muted-foreground">
-                By signing up, you agree to our{" "}
-                <Link href="/terms" className="font-medium text-primary hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="font-medium text-primary hover:underline">
-                  Privacy Policy
-                </Link>
-              </p>
             </form>
 
             <div className=" pt-6 border-t text-center">
