@@ -2,22 +2,27 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, } from 'convex/react';
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from '@/convex/_generated/api';
 import { Doc, Id } from '@/convex/_generated/dataModel';
 import VideoCapture from '@/components/VideoCapture/VideoCapture';
+import { useLecturerSession } from '@/hooks/useLecturerSession';
+import useGetLecturer from '@/hooks/useGetLecturer';
+import useLogout from '@/hooks/useLogout';
 // import { useLecturerAuth } from '@/contexts/LecturerAuthContext';
 
 const AttendancePage = () => {
   const router = useRouter();
-  const lecturer = localStorage.getItem("lecturerToken");
+  const { session, loading: sessionLoading, refresh } = useLecturerSession();
+  const lecturerId = session?.userId;
+  const { user: lecturer, loading: lecturerLoading } = useGetLecturer(lecturerId as Id<"lecturers">);
+  const {LogOut} = useLogout();
   const signOut = () => {
     localStorage.removeItem("lecturerToken");
-    router.replace('/auth/signin');
+    router.replace('/signin');
   };
-  const classes = useQuery(
-    api.classes.listForLecturer,
-    lecturer ? { lecturerId: lecturer as Id<"lecturers"> } : 'skip',
+  const classes = useQuery(api.classes.listForLecturer, lecturerId ? { lecturerId: lecturerId as Id<"lecturers"> } : 'skip',
   );
   const ensureLiveSession = useMutation(api.sessions.ensureLiveSession);
 
@@ -62,7 +67,7 @@ const AttendancePage = () => {
         {lecturer ? (
           <div className="text-sm text-gray-500">
             Signed in as <span className="font-medium text-gray-900">{lecturer.fullName}</span>
-            <button className="ml-4 rounded-md border border-gray-200 px-3 py-1 text-xs" onClick={signOut}>
+            <button className="ml-4 rounded-md border border-gray-200 px-3 py-1 text-xs" onClick={() => LogOut(lecturer._id)}>
               Sign out
             </button>
           </div>

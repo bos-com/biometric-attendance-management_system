@@ -70,6 +70,7 @@ export default defineSchema({
   lecturers: defineTable({
     fullName: v.string(),
     email: v.string(),
+    role: v.optional(v.string()),
     passwordHash: v.string(),
     staffId: v.optional(v.string()),
   })
