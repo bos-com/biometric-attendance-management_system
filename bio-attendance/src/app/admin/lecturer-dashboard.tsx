@@ -43,9 +43,9 @@ export function LecturerDashboard({
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader onCreateSession={() => setIsCreateModalOpen(true)} />
+      {/* <DashboardHeader onCreateSession={() => setIsCreateModalOpen(true)} /> */}
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <main className="container mx-auto px-4 max-w-7xl">
         <DashboardStats
           totalSessions={totalSessions}
           totalStudents={totalStudents}

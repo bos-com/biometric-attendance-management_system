@@ -50,9 +50,9 @@ export function NavMain() {
                         link:"/admin/#all",
                 },
                 {
-                        title: "Approved Products",
+                        title: "Enrolled Students",
                         icon: FcApproval    as LucideIcon,
-                        link:"/admin/approved",
+                        link:"/admin/students",
                 },
                 
                 {

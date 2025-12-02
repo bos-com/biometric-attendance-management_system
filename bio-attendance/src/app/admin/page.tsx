@@ -18,18 +18,19 @@ const Profile=()=> {
     
       
       <SidebarInset>
-        <SiteHeader />
+        {/* <SiteHeader /> */}
         <div className="flex flex-1 flex-col mt-5 ">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                <div className="w-full" >
+                <DashboardPage/>
+              </div>
               <div className=" flex flex-col md:flex-row @2xl:flex  gap-3 p-4 lg:px-6 ">
                 {/* <ChartAreaInteractive /> */}
                 {/* <PieChart products={products?.length||0} orders={orders?.length||0} /> */}
                 
               </div>
-              <div className="w-full" >
-                <DashboardPage/>
-              </div>
+              
               <div className="flex flex-col gap-4 px-4 lg:px-6">
                 <div className=" px-4 " id="all" >
                 {/* <DataTable  products={products ?? [] } /> */}
