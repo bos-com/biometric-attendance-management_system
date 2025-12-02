@@ -70,6 +70,7 @@ const useLecturer = () => {
                                                 body: JSON.stringify({
                                                         userId: result?.user?._id,
                                                         role: result?.user?.role,
+                                                        fullName: result?.user?.fullName,
                                 }),
                         });
                                         localStorage.setItem("lecturerToken", token ?? "");

@@ -6,6 +6,7 @@ type SessionPayload = {
   userId: string;
   role?: string;
   expiresAt?: string | number | Date;
+  fullName?: string;
   [key: string]: unknown;
 };
 

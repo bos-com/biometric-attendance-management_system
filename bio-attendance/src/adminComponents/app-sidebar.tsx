@@ -17,6 +17,7 @@ import {
   SettingsIcon,
   UsersIcon,
 } from "lucide-react"
+import Image from "next/image"
 
 // import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/adminComponents/nav-main"
@@ -26,9 +27,11 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-//   SidebarHeader,
-//   SidebarMenu,
-} from "@/components/ui/sidebar"
+  SidebarHeader,
+  SidebarMenu,
+  useSidebar,
+} from "@/adminComponents/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 const data = {
   user: {
@@ -148,12 +151,28 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { state } = useSidebar()
   return (
-    <Sidebar collapsible="icon" {...props} className="h-[90%] mt-20 bg-blue-400" >
-      {/* <SidebarHeader>
-        <SidebarMenu>
+    <Sidebar collapsible="icon" {...props} className="h-full bg-blue-400" >
+      <SidebarHeader>
+        <SidebarMenu className=" items-center " >
+                <div className="flex items-center gap-4 " >
+                        <Image src="/logo.png" width={50} height={50} className="flex"  alt="header image" />
+                        <h1
+                          className={cn(
+                            "flex font-bold text-blue-800 transition-opacity",
+                            state === "collapsed" ? "hidden" : "flex"
+                          )}
+                        >
+                        <span className="text-red-500" >Bugema University </span>  
+                        </h1>
+                </div>
+                <h1 className={cn(
+                            "flex font-bold text-blue-800 transition-opacity  font-sans",
+                            state === "collapsed" ? "hidden" : "flex"
+                          )} >Bio Attendance System</h1>
         </SidebarMenu>
-      </SidebarHeader> */}
+      </SidebarHeader>
       <SidebarContent>
         <NavMain  />
         {/* <NavDocuments items={data.documents} /> */}

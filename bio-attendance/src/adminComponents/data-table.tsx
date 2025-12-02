@@ -5,7 +5,7 @@ import {
         TableHead,
         TableHeader,
         TableRow,
-      } from "@/components/ui/table"
+      } from "@/adminComponents/ui/table"
       import { Checkbox } from "./ui/checkbox";
       import Image from "next/image";
 import { Oval } from "react-loader-spinner";

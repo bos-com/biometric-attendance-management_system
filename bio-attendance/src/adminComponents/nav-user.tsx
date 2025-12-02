@@ -10,7 +10,7 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@/components/ui/avatar"
+} from "@/adminComponents/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,14 +19,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/adminComponents/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { useAppSelector } from "@/hooks"
+} from "@/adminComponents/ui/sidebar"
+import { useLecturerSession } from "@/hooks/useLecturerSession";
+
 export function NavUser({
   user,
 }: {
@@ -37,8 +38,9 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const User = useAppSelector((state)=>state.user.user)
-  const logout = useLogout();
+  const {session} = useLecturerSession()
+  
+  const {LogOut} = useLogout();
   
 
   return (
@@ -55,9 +57,9 @@ export function NavUser({
                 <AvatarFallback className="rounded-lg">SC</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{User?.Username}</span>
+                <span className="truncate font-medium">{session?.fullName}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {User?.email}
+                  {/* {session?.email} */}
                 </span>
               </div>
               <MoreVerticalIcon className="ml-auto size-4" />
@@ -76,9 +78,9 @@ export function NavUser({
                   <AvatarFallback className="rounded-lg">SC</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{User?.Username}</span>
+                  <span className="truncate font-medium">{session?.fullName}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {User?.email}
+                    {/* {User?.email} */}
                   </span>
                 </div>
               </div>
@@ -91,7 +93,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer"  onClick={()=>logout()} >
+            <DropdownMenuItem className="cursor-pointer" onClick={() => session?.userId && LogOut(session.userId)} >
               <LogOutIcon />
               Log out
             </DropdownMenuItem>
