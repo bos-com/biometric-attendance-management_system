@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { type FormEvent, useState } from "react"
 import useLecturer from "@/hooks/useLecturer"
@@ -51,10 +52,14 @@ const SigninPage = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-primary-foreground">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground/10">
+            {/* <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground/10">
               <GraduationCap className="h-7 w-7" />
-            </div>
-            <span className="text-2xl font-bold">ClassRoom</span>
+            </div> */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
+                            <Image src="/logo.png" width={500} height={500} alt="logo"  />
+                            {/* <GraduationCap className="h-5 w-5 text-primary-foreground" /> */}
+                          </div>
+            <span className="text-2xl font-bold">Bugema University</span>
           </div>
         </div>
 

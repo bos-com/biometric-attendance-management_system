@@ -1,11 +1,9 @@
 import React from 'react'
-
+import CourseStudentsPage from './students'
 const page = () => {
   return (
-    <div className='flex h-screen justify-center text-2xl font-semibold  items-center text-center '>
-        <h1 className=' flex items-center justify-center  '>
-                All Students
-        </h1>
+    <div className='flex flex-col h-full w-full justify-center text-2xl font-semibold  items-center text-center '>
+        <CourseStudentsPage />
         </div>
   )
 }
