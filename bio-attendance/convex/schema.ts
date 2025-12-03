@@ -11,8 +11,9 @@ export default defineSchema({
     program: v.optional(v.string()),
     courseUnits: v.optional(v.array(v.string())),
     email: v.optional(v.string()),
-    photoDataUrl: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")),
+    photoDataUrl: v.optional(v.array(v.string())),
+    photoStorageId: v.optional(v.array(v.id("_storage"))),
+    photoEmbeddings: v.optional(v.array(v.float64())),
     createdAt: v.number(),
   })
     .index("by_studentId", ["studentId"])
@@ -40,8 +41,13 @@ export default defineSchema({
     studentId: v.id("students"),
     descriptor: v.array(v.float64()),
     version: v.string(),
+    studentImages: v.optional(v.array(v.id("_storage"))),
     updatedAt: v.number(),
-  }).index("by_student", ["studentId"]),
+  }).index("by_student", ["studentId"])
+     .vectorIndex("by_photoEmbeddings",{
+        vectorField:"descriptor",
+        dimensions:128,
+  }),
   sessions: defineTable({
     sessionId: v.id("classes"),
     sessionName: v.string(),

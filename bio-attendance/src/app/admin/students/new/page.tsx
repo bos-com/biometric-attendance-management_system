@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { embedImage } from "../Embeddings/embedImage"
 import {
   User,
   Mail,
@@ -43,7 +44,7 @@ const StudentRegistrationPage = () => {
   const [courseUnits, setCourseUnits] = useState<string[]>([])
   const [selectedClasses, setSelectedClasses] = useState<Id<"classes">[]>([])
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage"> | null>(null)
+  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage">[] | null>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitState, setSubmitState] = useState<{ status: "idle" | "success" | "error"; message?: string }>({
@@ -71,29 +72,47 @@ const StudentRegistrationPage = () => {
     const file = event.target.files?.[0]
     if (!file) return
     setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const {start} = embedImage();
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    let file: File | null = null
+    if (photoPreview) {
+      const response = await fetch(photoPreview)
+      const blob = await response.blob()
+      file = new File([blob], "photo.jpg", { type: blob.type })
+    }
+    const photoembeddings = file && await start(file).then((res) => {
+        console.log("Embeddings generated:", res?.descriptor);
+        const descriptor = res?.descriptor;
+      return Array.isArray(descriptor?.[0]) 
+        ? (descriptor as number[][])[0]
+           : (descriptor as number[] | undefined);
+    })
+
     try {
       setUploadingPhoto(true)
       const uploadUrl = await generateUploadUrl()
       const response = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
+        headers: { "Content-Type": file?.type || "application/octet-stream" },
         body: file,
       })
       if (!response.ok) {
         throw new Error("Upload failed")
       }
       const { storageId } = await response.json()
-      setPhotoStorageId(storageId as Id<"_storage">)
+      setPhotoStorageId([storageId as Id<"_storage">])
     } catch (err) {
       console.error(err)
       setSubmitState({ status: "error", message: "Photo upload failed" })
     } finally {
       setUploadingPhoto(false)
     }
-  }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
     try {
       setSubmitState({ status: "idle" })
       setIsSubmitting(true)
@@ -107,10 +126,18 @@ const StudentRegistrationPage = () => {
         gender: gender || undefined,
         courseUnits,
         classIds: selectedClasses,
-        descriptor: undefined,
-        descriptorVersion: undefined,
         photoDataUrl: undefined,
         photoStorageId: photoStorageId ?? undefined,
+        photoEmbeddings:photoembeddings??undefined,
+      }).then((res) => {
+        if (!res.success) {
+                  console.error(res.message)
+                  setSubmitState({ status: "error", message: res.message?? "Unable to save student" })
+                    setTimeout(()=>{
+                        setSubmitState({ status: "idle",})
+                    },5000)
+                    return;
+        }
       })
       setSubmitState({ status: "success", message: "Student profile saved successfully!" })
       setStudentId("")
@@ -126,8 +153,10 @@ const StudentRegistrationPage = () => {
       setPhotoStorageId(null)
     } catch (err) {
       console.error(err)
-      setSubmitState({ status: "error", message: err instanceof Error ? err.message : "Unable to save student" })
     } finally {
+        setTimeout(()=>{
+         setSubmitState({ status: "idle" })
+     },5000)
       setIsSubmitting(false)
     }
   }

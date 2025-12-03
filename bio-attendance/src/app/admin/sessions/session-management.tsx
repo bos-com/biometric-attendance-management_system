@@ -183,7 +183,7 @@ export function SessionManagement({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/attendance">
+            <Link href="/admin/attendance">
               <Button variant="outline" size="sm">
                 <ScanLine className="mr-2 h-4 w-4" />
                 Attendance Module
