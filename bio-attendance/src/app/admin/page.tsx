@@ -12,6 +12,7 @@ import DashboardPage  from "./dashboard/DashboardPage"
 const Profile=()=> {
         const {session} = useLecturerSession();
         const User = useGetLecturer(session?.userId as Id<"lecturers">);
+        console.log("User Data:",User);
         
         
   return (

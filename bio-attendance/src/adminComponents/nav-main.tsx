@@ -34,9 +34,9 @@ export function NavMain() {
                 
               
                 {
-                        title: "New Session",
+                        title: "Sessions",
                         icon: PlusCircleIcon as LucideIcon,
-                        link:"/admin/orders",
+                        link:"/admin/sessions",
                 },
              
                  {
@@ -44,22 +44,13 @@ export function NavMain() {
                         icon: SquarePlus   as LucideIcon,
                         link:"/admin/students/new",
                 },
-                {
-                        title: "Previous Sessions",
-                        icon: Rows4    as LucideIcon,
-                        link:"/admin/#all",
-                },
+                
                 {
                         title: "Enrolled Students",
                         icon: FcApproval    as LucideIcon,
                         link:"/admin/students",
                 },
                 
-                {
-                        title: "Pending",
-                        icon: MdOutlinePending     as LucideIcon,
-                        link:"/admin/pending",
-                },
                 
                 // {
                 //         title: "Boost ",
@@ -67,9 +58,9 @@ export function NavMain() {
                 //         link:"/admin/boost",
                 // },
                 {
-                        title: "Edit Shop Details",
+                        title: "Attendance Module",
                         icon: Edit2Icon      as LucideIcon,
-                        link:"/admin/edit-shop",
+                        link:"/admin/attendance",
                 },
                 
                 
