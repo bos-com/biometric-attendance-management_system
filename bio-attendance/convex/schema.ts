@@ -43,7 +43,8 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_student", ["studentId"]),
   sessions: defineTable({
-    classId: v.id("classes"),
+    sessionId: v.id("classes"),
+    sessionName: v.string(),
     startsAt: v.number(),
     endsAt: v.number(),
     status: v.union(
@@ -55,7 +56,7 @@ export default defineSchema({
     autoClose: v.optional(v.boolean()),
     createdAt: v.number(),
   })
-    .index("by_class", ["classId"])
+    .index("by_session", ["sessionId"])
     .index("by_status", ["status"]),
   attendance: defineTable({
     sessionId: v.id("sessions"),
