@@ -360,7 +360,7 @@ export function StudentDetailModal({
             </a>
           </Button>
           <Button variant="secondary" className="gap-2" asChild>
-            <a href="/attendance">
+            <a href="/admin/attendance">
               <ExternalLink className="h-4 w-4" />
               View in Attendance Module
             </a>

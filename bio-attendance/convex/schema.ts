@@ -13,6 +13,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     photoDataUrl: v.optional(v.string()),
     photoStorageId: v.optional(v.id("_storage")),
+    photoEmbeddings: v.optional(v.array(v.float64())),
     createdAt: v.number(),
   })
     .index("by_studentId", ["studentId"])

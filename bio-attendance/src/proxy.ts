@@ -3,7 +3,6 @@ import { decrypt } from "./lib/sessions"
 import { cookies } from 'next/headers'
 
 const isProtected = [
-        '/attendance',
         '/profile',
         "/students",
         "/classes",

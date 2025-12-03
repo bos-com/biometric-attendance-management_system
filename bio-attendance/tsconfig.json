@@ -30,6 +30,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "src/app/admin/students/Embeddings/test.js", "src/app/admin/students/Embeddings/embedImage.tsx"  ],
   "exclude": ["node_modules"]
 }
