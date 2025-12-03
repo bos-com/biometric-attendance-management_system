@@ -13,10 +13,9 @@ export const registerWithFace = mutation({
     courseUnits: v.optional(v.array(v.string())),
     email: v.optional(v.string()),
     classIds: v.optional(v.array(v.id("classes"))),
-    descriptor: v.optional(v.array(v.float64())),
-    descriptorVersion: v.optional(v.string()),
-    photoDataUrl: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")),
+    photoDataUrl: v.optional(v.array(v.string())),
+    photoStorageId: v.optional(v.array(v.id("_storage"))),
+    photoEmbeddings: v.optional(v.array(v.float64())),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -26,7 +25,11 @@ export const registerWithFace = mutation({
       .unique();
 
     if (existing) {
-      throw new ConvexError("Student ID is already registered.");
+        return {
+                message: "Student ID is already registered.",
+                success: false,
+                newStudentId: null
+        }
     }
 
     const newStudentId = await ctx.db.insert("students", {
@@ -43,11 +46,11 @@ export const registerWithFace = mutation({
       createdAt: now,
     });
 
-    if (args.descriptor && args.descriptor.length > 0) {
+    if (args.photoEmbeddings && args.photoEmbeddings.length > 0) {
       await ctx.db.insert("faceEmbeddings", {
         studentId: newStudentId,
-        descriptor: args.descriptor,
-        version: args.descriptorVersion ?? "faceapi-v1",
+        descriptor: args.photoEmbeddings,
+        version: "faceapi-v1",
         updatedAt: now,
       });
     }
@@ -70,7 +73,11 @@ export const registerWithFace = mutation({
       }
     }
 
-    return newStudentId;
+    return {
+        message: "Student registered successfully.",
+        success:true,
+        newStudentId:newStudentId
+    };
   },
 });
 
@@ -105,8 +112,8 @@ export const updateDetails = mutation({
     program: v.optional(v.string()),
     courseUnits: v.optional(v.array(v.string())),
     email: v.optional(v.string()),
-    photoDataUrl: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")),
+    photoDataUrl: v.optional(v.array(v.string())),
+    photoStorageId: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.studentDocId, {
