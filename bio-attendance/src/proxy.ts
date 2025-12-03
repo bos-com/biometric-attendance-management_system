@@ -7,13 +7,14 @@ const isProtected = [
         '/profile',
         "/students",
         "/classes",
+        "/admin",
         "/sessions",
         "/reports",
         "/settings",
 ]
-const publicRoutes = ['/signin', '/signup','/passwordChange', '/password-reset'];
+const publicRoutes = ["/",'/signin', '/signup','/passwordChange', '/password-reset'];
 const RoleProtected = [
-        // '/admin(.*)',
+        '/admin(.*)',
          '/sudo(.*)', ];
 const proxy = async (req: NextRequest) => {
         const path = req.nextUrl.pathname
@@ -35,8 +36,8 @@ const proxy = async (req: NextRequest) => {
                         return NextResponse.redirect(new URL('/unauthorized', req.url));
                 }
 
-        if (isPublicRoute && session?.userId && req.nextUrl.pathname != '/') {
-                return NextResponse.redirect(new URL('/', req.nextUrl))
+        if (isPublicRoute && session?.userId && req.nextUrl.pathname === '') {
+                return NextResponse.redirect(new URL('/admin', req.nextUrl))
   }
 
  

@@ -1,9 +1,14 @@
-import VideoCapture from "@/components/VideoCapture/VideoCapture";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div className="flex h-screen   items-center justify-center bg-gray-100 font-sans">
-     <VideoCapture />
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin");
+  }, [router]);
+
+  return null; // Nothing to render while redirecting
 }
