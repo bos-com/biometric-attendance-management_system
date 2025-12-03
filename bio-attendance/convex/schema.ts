@@ -18,25 +18,7 @@ export default defineSchema({
   })
     .index("by_studentId", ["studentId"])
     .index("by_lastName", ["lastName"]),
-  classes: defineTable({
-    code: v.string(),
-    title: v.string(),
-    lecturer: v.optional(v.string()),
-    lecturerId: v.optional(v.id("lecturers")),
-    description: v.optional(v.string()),
-    createdAt: v.number(),
-    defaultDurationMinutes: v.optional(v.number()),
-  })
-    .index("by_code", ["code"])
-    .index("by_lecturer", ["lecturerId"]),
-  rosters: defineTable({
-    classId: v.id("classes"),
-    studentId: v.id("students"),
-    createdAt: v.number(),
-  })
-    .index("by_class", ["classId"])
-    .index("by_student", ["studentId"])
-    .index("by_class_student", ["classId", "studentId"]),
+
   faceEmbeddings: defineTable({
     studentId: v.id("students"),
     descriptor: v.array(v.float64()),
@@ -48,9 +30,14 @@ export default defineSchema({
         vectorField:"descriptor",
         dimensions:128,
   }),
+
   sessions: defineTable({
     sessionId: v.id("classes"),
-    sessionName: v.string(),
+    courseUnitCode: v.string(),
+    studentIds: v.array(v.id("students")),
+    lecturerId: v.optional(v.id("lecturers")),
+    sessionTitle: v.string(),
+    description: v.optional(v.string()),
     startsAt: v.number(),
     endsAt: v.number(),
     status: v.union(
@@ -60,20 +47,25 @@ export default defineSchema({
     ),
     notes: v.optional(v.string()),
     autoClose: v.optional(v.boolean()),
-    createdAt: v.number(),
   })
     .index("by_session", ["sessionId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+     .index("by_courseUnitCode", ["courseUnitCode"])
+    .index("by_lecturer", ["lecturerId"]),
+    
   attendance: defineTable({
-    sessionId: v.id("sessions"),
-    studentId: v.id("students"),
-    capturedAt: v.number(),
-    confidence: v.number(),
-    source: v.union(v.literal("auto"), v.literal("manual")),
-    frameDataUrl: v.optional(v.string()),
+        courseUnitCode: v.string(), 
+        sessionId: v.id("sessions"),
+        studentIds: v.array(v.id("students")),
+        capturedAt: v.number(),
+        confidence: v.number(),
+        source: v.union(v.literal("auto"), v.literal("manual")),
+        frameDataUrl: v.optional(v.string()),
   })
+  .index("by_courseUnitCode", ["courseUnitCode"])
     .index("by_session", ["sessionId"])
-    .index("by_session_student", ["sessionId", "studentId"]),
+    .index("by_session_student", ["sessionId", "studentIds"]),
+
   lecturers: defineTable({
     fullName: v.string(),
     email: v.string(),
@@ -81,7 +73,8 @@ export default defineSchema({
     passwordHash: v.string(),
     staffId: v.optional(v.string()),
   })
-    .index("by_email", ["email"]),
+  .index("by_email", ["email"]),
+
   lecturerSessions: defineTable({
     lecturerId: v.id("lecturers"),
     token: v.string(),
@@ -89,4 +82,6 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_token", ["token"])
   .index("by_lecturer", ["lecturerId"]),
+
+
 });
