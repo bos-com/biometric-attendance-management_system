@@ -64,7 +64,9 @@ const VideoCapture = () => {
             .withFaceLandmarks()
             .withFaceExpressions()
             .withFaceDescriptors();
-
+            detections.forEach((detection)=>{
+                // console.log(detection)
+            })
           const resized = faceapi.resizeResults(detections, displaySize);
 
           const ctx = overlay.getContext("2d");
@@ -98,7 +100,7 @@ const VideoCapture = () => {
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-[50%] bg-amber-300 overflow-hidden"
+      className="relative h-full w-full bg-amber-300 overflow-hidden"
     >
       <video
         ref={videoRef}

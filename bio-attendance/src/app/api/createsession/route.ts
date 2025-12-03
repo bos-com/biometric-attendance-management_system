@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
   const { userId, role,fullName } = await req.json();
+  console.log("Creating session for userId:", userId, "role:", role);
   try {
     await createSession(userId, role,fullName);
     revalidatePath('/');

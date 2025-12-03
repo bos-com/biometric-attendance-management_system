@@ -50,12 +50,6 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
               </Link>
             </Button>
 
-            <Button onClick={onCreateSession} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">New Session</span>
-              <span className="sm:hidden">New</span>
-            </Button>
-
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
