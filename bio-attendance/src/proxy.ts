@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { decrypt } from "../src/lib/sessions"
+import { decrypt } from "./lib/sessions"
 import { cookies } from 'next/headers'
 
 const isProtected = [
@@ -15,10 +15,7 @@ const publicRoutes = ['/signin', '/signup','/passwordChange', '/password-reset']
 const RoleProtected = [
         // '/admin(.*)',
          '/sudo(.*)', ];
-const Middleware = async (req: NextRequest) => {
-          if (req.nextUrl.pathname.includes("/home")) {
-        return NextResponse.redirect(new URL('/', req.url))
-  }
+const proxy = async (req: NextRequest) => {
         const path = req.nextUrl.pathname
         // console.log("Middleware path:",path)
         const isProtectedPath = isProtected.some(route => path.startsWith(route));
@@ -39,14 +36,14 @@ const Middleware = async (req: NextRequest) => {
                 }
 
         if (isPublicRoute && session?.userId && req.nextUrl.pathname != '/') {
-                return NextResponse.redirect(new URL('/signin', req.nextUrl))
+                return NextResponse.redirect(new URL('/', req.nextUrl))
   }
 
  
   return NextResponse.next()
 }
 
-export default Middleware;
+export default proxy;
 
 export const config = {
   matcher: [
