@@ -13,8 +13,8 @@ export const registerWithFace = mutation({
     courseUnits: v.optional(v.array(v.string())),
     email: v.optional(v.string()),
     classIds: v.optional(v.array(v.id("classes"))),
-    photoDataUrl: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")),
+    photoDataUrl: v.optional(v.array(v.string())),
+    photoStorageId: v.optional(v.array(v.id("_storage"))),
     photoEmbeddings: v.optional(v.array(v.float64())),
   },
   handler: async (ctx, args) => {
@@ -112,8 +112,8 @@ export const updateDetails = mutation({
     program: v.optional(v.string()),
     courseUnits: v.optional(v.array(v.string())),
     email: v.optional(v.string()),
-    photoDataUrl: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")),
+    photoDataUrl: v.optional(v.array(v.string())),
+    photoStorageId: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.studentDocId, {

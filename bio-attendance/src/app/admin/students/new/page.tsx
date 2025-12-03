@@ -44,7 +44,7 @@ const StudentRegistrationPage = () => {
   const [courseUnits, setCourseUnits] = useState<string[]>([])
   const [selectedClasses, setSelectedClasses] = useState<Id<"classes">[]>([])
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage"> | null>(null)
+  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage">[] | null>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitState, setSubmitState] = useState<{ status: "idle" | "success" | "error"; message?: string }>({
@@ -105,7 +105,7 @@ const StudentRegistrationPage = () => {
         throw new Error("Upload failed")
       }
       const { storageId } = await response.json()
-      setPhotoStorageId(storageId as Id<"_storage">)
+      setPhotoStorageId([storageId as Id<"_storage">])
     } catch (err) {
       console.error(err)
       setSubmitState({ status: "error", message: "Photo upload failed" })
