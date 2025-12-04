@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import type { ClassSession } from "../dashboard/DashboardPage"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, Clock, MapPin, Loader2 } from "lucide-react"
+import { CalendarDays, Clock, MapPin, Loader2, Check } from "lucide-react"
+import useGetCourseUnits from "@/hooks/useGetCourseUnits"
+import { Checkbox } from "@/components/ui/checkbox"
+import { AttendanceSession } from "@/lib/types"
+import { useLecturerSession } from "@/hooks/useLecturerSession"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface Course {
   code: string
@@ -25,22 +29,40 @@ interface Course {
 interface CreateSessionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  courses: Course[]
-  onCreateSession: (session: Omit<ClassSession, "id" | "attendanceRecords" | "status">) => void
+  onCreateSession: (session: Omit<AttendanceSession, "_id" | "_creationTime"|"sessionId">) => void
 }
 
-export function CreateSessionModal({ open, onOpenChange, courses, onCreateSession }: CreateSessionModalProps) {
+export function CreateSessionModal({ open, onOpenChange,onCreateSession }: CreateSessionModalProps) {
   const [formData, setFormData] = useState({
     courseCode: "",
     date: "",
     startTime: "",
     endTime: "",
+    title: "",
     location: "",
+    description: "",
+    autoStart: false,
+    autoClose: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { courseUnits} = useGetCourseUnits()
+  const [coursesData, setCoursesData] = useState<Course[]>(courseUnits || [])
 
-  const selectedCourse = courses.find((c) => c.code === formData.courseCode)
+  useEffect(() => {
+        if (courseUnits) {
+      setCoursesData(courseUnits);
+    }
+  }, [courseUnits]);
+  
 
+  const selectedCourse = coursesData.find((c) => c.code === formData.courseCode)
+  const { session } = useLecturerSession();
+  const [lecturer, setLecturer] = useState(session);
+
+  useEffect(()=>{
+        setLecturer(session);
+        console.log("Lecturer session updated: ", session);
+  }, [formData,session]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -49,12 +71,16 @@ export function CreateSessionModal({ open, onOpenChange, courses, onCreateSessio
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     onCreateSession({
-      courseCode: formData.courseCode,
-      courseName: selectedCourse?.name || "",
-      date: new Date(formData.date),
-      startTime: formData.startTime,
-      endTime: formData.endTime,
+      courseUnitCode: formData.courseCode,
+      lecturerId: lecturer?.userId as Id<"lecturers">,
+      startsAt: new Date(`${formData.date}T${formData.startTime}`).getTime(),
+      endsAt: new Date(`${formData.date}T${formData.endTime}`).getTime(),
+      sessionTitle: formData.title,
+      description: formData.description,
+      status: "scheduled",
       location: formData.location,
+      autoStart: formData.autoStart,
+      autoClose: formData.autoClose,
     })
 
     setFormData({
@@ -63,26 +89,33 @@ export function CreateSessionModal({ open, onOpenChange, courses, onCreateSessio
       startTime: "",
       endTime: "",
       location: "",
+        title: "",
+      description: "",
+        autoStart: false,
+        autoClose: false,
     })
     setIsSubmitting(false)
     onOpenChange(false)
   }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   useEffect(() => {
+        console.log("Courses data updated:", formData);
+   },[formData])
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-full md:max-w-[900px] ">
         <DialogHeader>
           <DialogTitle>Create New Session</DialogTitle>
           <DialogDescription>Schedule a new class session for attendance tracking</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-green-50  p-2 ">
+         <div className="grid md:grid-cols-4  md:gap-4 px-5" >
+                 <div className="flex flex-col  space-y-2 overflow-clip">
             <Label htmlFor="courseCode">Course Unit</Label>
             <Select
               value={formData.courseCode}
@@ -92,7 +125,7 @@ export function CreateSessionModal({ open, onOpenChange, courses, onCreateSessio
                 <SelectValue placeholder="Select a course unit" />
               </SelectTrigger>
               <SelectContent>
-                {courses.map((course) => (
+                {coursesData.map((course) => (
                   <SelectItem key={course.code} value={course.code}>
                     {course.code} - {course.name}
                   </SelectItem>
@@ -100,6 +133,42 @@ export function CreateSessionModal({ open, onOpenChange, courses, onCreateSessio
               </SelectContent>
             </Select>
           </div>
+
+                    <div className="flex flex-col  space-y-2 mb-2">
+            <Label htmlFor="location">Title</Label>
+            <div className="relative">
+              
+              <Input
+                id="title"
+                name="title"
+                placeholder="Session Title / Topic"
+                value={formData.title}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div  className="flex space-y-2 items-center gap-3">
+                <Checkbox 
+                  id="autoStart"
+                  checked={formData.autoStart} 
+                  onCheckedChange={(checked) => setFormData((prev) => ({...prev, autoStart: checked === true}))} 
+                  className="flex text-black" 
+                />
+                <Label htmlFor="autoStart" className="font-semibold cursor-pointer">Auto Start</Label>
+          </div>
+                <div  className="flex space-y-2 items-center gap-3">
+                <Checkbox
+                  id="autoClose"
+                  checked={formData.autoClose} 
+                  onCheckedChange={(checked) => setFormData((prev) => ({...prev, autoClose: checked === true}))} 
+                  className="flex text-black" 
+                />
+                <Label htmlFor="autoClose" className="font-semibold cursor-pointer">Auto Close</Label>
+          </div>
+         </div>
 
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
@@ -165,6 +234,18 @@ export function CreateSessionModal({ open, onOpenChange, courses, onCreateSessio
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <textarea
+                  id="description"
+                  name="description"
+                  placeholder="Session Description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  className="w-full rounded-md border border-gray-300 p-2"
+                />
           </div>
 
           <DialogFooter>

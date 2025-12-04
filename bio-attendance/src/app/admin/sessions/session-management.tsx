@@ -40,6 +40,7 @@ import { CreateSessionModal } from "./create-session-modal"
 import { EditSessionModal } from "./edit-session-modal"
 import { SessionDetailDrawer } from "./session-detail-drawer"
 import { DeleteSessionDialog } from "./delete-session-dialog"
+import { AttendanceSession } from "@/lib/types"
 
 interface Course {
   code: string
@@ -50,7 +51,7 @@ interface SessionManagementProps {
   sessions: ClassSession[]
   students: Student[]
   courses: Course[]
-  onCreateSession: (session: Omit<ClassSession, "id" | "attendanceRecords" | "status">) => void
+  onCreateSession: (session: Omit<AttendanceSession, "_id" | "_creationTime"|"sessionId">) => void
   onUpdateSession: (sessionId: string, updates: Partial<ClassSession>) => void
   onDeleteSession: (sessionId: string) => void
   onStartSession: (sessionId: string) => void
@@ -414,7 +415,6 @@ export function SessionManagement({
       <CreateSessionModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        courses={courses}
         onCreateSession={onCreateSession}
       />
 
