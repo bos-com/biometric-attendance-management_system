@@ -55,6 +55,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     startsAt: v.number(),
     endsAt: v.number(),
+    location: v.string(),
     status: v.union(
       v.literal("scheduled"),
       v.literal("live"),

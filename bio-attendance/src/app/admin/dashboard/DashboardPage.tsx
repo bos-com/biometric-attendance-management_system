@@ -26,6 +26,10 @@ export interface ClassSession {
   startTime: string
   endTime: string
   location: string
+  title?: string
+  description?: string
+  autoStart?: boolean
+  autoClose?: boolean
   status: "scheduled" | "ongoing" | "completed"
   attendanceRecords: AttendanceRecord[]
 }
