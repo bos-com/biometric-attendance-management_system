@@ -141,4 +141,12 @@ export const getCourseUnits = query({
                 const course_units = await ctx.db.query("course_units").collect();
                 return course_units;
         } 
-});        
+});
+
+export const getSessions = query({
+        args:{},
+        handler: async (ctx) => {
+                const sessions = await ctx.db.query("attendance_sessions").collect();
+                return sessions;
+        }
+});

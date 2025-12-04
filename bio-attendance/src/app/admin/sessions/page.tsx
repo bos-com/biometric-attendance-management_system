@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { SessionManagement } from "./session-management"
 import type { ClassSession, Student, AttendanceRecord } from "../dashboard/DashboardPage"
 import useCreateSession from "@/hooks/useCreateSession"
 import { AttendanceSession } from "@/lib/types"
+import useGetSessions from "@/hooks/useGetSessions"
+import { Id } from "@/convex/_generated/dataModel"
 
 
 // Demo course units the lecturer teaches
@@ -29,10 +31,20 @@ const demoStudents: Student[] = [
 
 
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<ClassSession[]>([])
+  const [sessions, setSessions] = useState<AttendanceSession[]>([])
+  const { sessions: fetchedSessions, loading, error } = useGetSessions();
   const {CreateSession} = useCreateSession();
 
-  
+  useEffect(()=>{
+        if(fetchedSessions){
+                const filtered = fetchedSessions.filter((session): session is AttendanceSession => 
+                        session.lecturerId !== undefined && 
+                        session._id !== undefined && 
+                        session._creationTime !== undefined
+                );
+                setSessions(filtered);
+        }
+  }, [fetchedSessions])
 
   const handleCreateSession = async (newSession: Omit<AttendanceSession, "_id" | "_creationTime"|"sessionId">) => {
     const session = newSession
@@ -40,49 +52,50 @@ export default function SessionsPage() {
 //     setSessions((prev) => [session, ...prev])
   }
 
-  const handleUpdateSession = (sessionId: string, updates: Partial<ClassSession>) => {
-    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, ...updates } : s)))
+  const handleUpdateSession = (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => {
+    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, ...updates } : s)))
   }
 
-  const handleDeleteSession = (sessionId: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+  const handleDeleteSession = (sessionId: Id<"attendance_sessions">) => {
+    setSessions((prev) => prev.filter((s) => s._id !== sessionId))
   }
 
-  const handleStartSession = (sessionId: string) => {
-    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, status: "ongoing" } : s)))
+  const handleStartSession = (sessionId: Id<"attendance_sessions">) => {
+    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "live" } : s)))
   }
 
-  const handleEndSession = (sessionId: string) => {
-    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, status: "completed" } : s)))
+  const handleEndSession = (sessionId: Id<"attendance_sessions">) => {
+    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "closed" } : s)))
   }
 
-  const handleMarkAttendance = (sessionId: string, studentId: string, status: "present" | "absent" | "late") => {
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id === sessionId) {
-          const existingIndex = s.attendanceRecords.findIndex((r) => r.studentId === studentId)
-          const newRecord: AttendanceRecord = {
-            studentId,
-            timestamp: new Date(),
-            status,
-          }
+//   const handleMarkAttendance = (sessionId: string, studentId: string, status: "present" | "absent" | "late") => {
+//     setSessions((prev) =>
+//       prev.map((s) => {
+//         if (s.id === sessionId) {
+//           const existingIndex = s.attendanceRecords.findIndex((r) => r.studentId === studentId)
+//           const newRecord: AttendanceRecord = {
+//             studentId,
+//             timestamp: new Date(),
+//             status,
+//           }
 
-          if (existingIndex >= 0) {
-            const updatedRecords = [...s.attendanceRecords]
-            updatedRecords[existingIndex] = newRecord
-            return { ...s, attendanceRecords: updatedRecords }
-          }
-          return { ...s, attendanceRecords: [...s.attendanceRecords, newRecord] }
-        }
-        return s
-      }),
-    )
-  }
+//           if (existingIndex >= 0) {
+//             const updatedRecords = [...s.attendanceRecords]
+//             updatedRecords[existingIndex] = newRecord
+//             return { ...s, attendanceRecords: updatedRecords }
+//           }
+//           return { ...s, attendanceRecords: [...s.attendanceRecords, newRecord] }
+//         }
+//         return s
+//       }),
+//     )
+//   }
 
   return (
 <div className="min-h-screen bg-green-50/80">
             <SessionManagement
-      sessions={sessions}
+            sessionLoading={loading}
+      sessions={sessions || []}
       students={demoStudents}
       courses={lecturerCourses}
       onCreateSession={handleCreateSession}
@@ -90,7 +103,7 @@ export default function SessionsPage() {
       onDeleteSession={handleDeleteSession}
       onStartSession={handleStartSession}
       onEndSession={handleEndSession}
-      onMarkAttendance={handleMarkAttendance}
+//       onMarkAttendance={handleMarkAttendance}
     />
 </div>
   )
