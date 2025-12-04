@@ -24,15 +24,18 @@ import {
   UserX,
   UserMinus,
 } from "lucide-react"
+import { AttendanceSession } from "@/lib/types"
+import { Dateformat } from "@/lib/utils"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface SessionDetailDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  session: ClassSession
+  session: AttendanceSession
   students: Student[]
-  onStartSession: (sessionId: string) => void
-  onEndSession: (sessionId: string) => void
-  onMarkAttendance: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
+  onStartSession: (sessionId: Id<"attendance_sessions">) => void
+  onEndSession: (sessionId: Id<"attendance_sessions">) => void
+  onMarkAttendance?: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
 }
 
 export function SessionDetailDrawer({
@@ -90,13 +93,13 @@ export function SessionDetailDrawer({
     return { present, late, absent, unmarked, total: students.length }
   }, [session.attendanceRecords, students.length])
 
-  const getStatusBadge = (status: ClassSession["status"]) => {
+  const getStatusBadge = (status: AttendanceSession["status"]) => {
     switch (status) {
       case "scheduled":
         return <Badge variant="secondary">Scheduled</Badge>
-      case "ongoing":
+      case "live":
         return <Badge className="bg-emerald-500 hover:bg-emerald-600">Ongoing</Badge>
-      case "completed":
+      case "closed":
         return <Badge variant="outline">Completed</Badge>
     }
   }
@@ -140,9 +143,9 @@ export function SessionDetailDrawer({
         <SheetHeader className="p-6 border-b">
           <div className="flex items-start justify-between">
             <div>
-              <SheetTitle className="text-xl">{session.courseName}</SheetTitle>
+              <SheetTitle className="text-xl">{session.sessionTitle}</SheetTitle>
               <SheetDescription className="flex items-center gap-2 mt-1">
-                <Badge variant="outline">{session.courseCode}</Badge>
+                <Badge variant="outline">{session.courseUnitCode}</Badge>
                 {getStatusBadge(session.status)}
               </SheetDescription>
             </div>
@@ -152,11 +155,11 @@ export function SessionDetailDrawer({
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground pt-4">
             <span className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              {formatDate(session.date)}
+              {Dateformat(session._creationTime||0)}
             </span>
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
-              {session.startTime} - {session.endTime}
+              {Dateformat(session.startsAt||0)} - {Dateformat(session.endsAt||0)}
             </span>
             <span className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
@@ -167,13 +170,13 @@ export function SessionDetailDrawer({
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4">
             {session.status === "scheduled" && (
-              <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={() => onStartSession(session.id)}>
+              <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={() => onStartSession(session._id)}>
                 <Play className="mr-2 h-4 w-4" />
                 Start Session
               </Button>
             )}
-            {session.status === "ongoing" && (
-              <Button variant="destructive" className="flex-1" onClick={() => onEndSession(session.id)}>
+            {session.status === "live" && (
+              <Button variant="destructive" className="flex-1" onClick={() => onEndSession(session._id)}>
                 <Square className="mr-2 h-4 w-4" />
                 End Session
               </Button>
@@ -248,7 +251,7 @@ export function SessionDetailDrawer({
               ) : (
                 filteredStudents.map((student) => {
                   const status = getAttendanceStatus(student.id)
-                  const isOngoing = session.status === "ongoing"
+                  const isOngoing = session.status === "live"
 
                   return (
                     <div
@@ -282,7 +285,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "present" ? "bg-emerald-500 hover:bg-emerald-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session.id, student.id, "present")}
+                              onClick={() => onMarkAttendance(session._id, student.id, "present")}
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -292,7 +295,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "late" ? "bg-amber-500 hover:bg-amber-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session.id, student.id, "late")}
+                              onClick={() => onMarkAttendance(session._id, student.id, "late")}
                             >
                               <AlertCircle className="h-4 w-4" />
                             </Button>
@@ -302,7 +305,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "absent" ? "bg-red-500 hover:bg-red-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session.id, student.id, "absent")}
+                              onClick={() => onMarkAttendance(session._id, student.id, "absent")}
                             >
                               <X className="h-4 w-4" />
                             </Button>

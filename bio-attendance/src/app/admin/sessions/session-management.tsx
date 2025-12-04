@@ -41,6 +41,9 @@ import { EditSessionModal } from "./edit-session-modal"
 import { SessionDetailDrawer } from "./session-detail-drawer"
 import { DeleteSessionDialog } from "./delete-session-dialog"
 import { AttendanceSession } from "@/lib/types"
+import { Id } from "@/convex/_generated/dataModel"
+import {Dateformat } from "@/lib/utils"
+import Loader from "@/components/Loader/loader"
 
 interface Course {
   code: string
@@ -48,19 +51,21 @@ interface Course {
 }
 
 interface SessionManagementProps {
-  sessions: ClassSession[]
+  sessions: AttendanceSession[]
+  sessionLoading: boolean
   students: Student[]
   courses: Course[]
   onCreateSession: (session: Omit<AttendanceSession, "_id" | "_creationTime"|"sessionId">) => void
-  onUpdateSession: (sessionId: string, updates: Partial<ClassSession>) => void
-  onDeleteSession: (sessionId: string) => void
-  onStartSession: (sessionId: string) => void
-  onEndSession: (sessionId: string) => void
-  onMarkAttendance: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
+  onUpdateSession: (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => void
+  onDeleteSession: (sessionId: Id<"attendance_sessions">) => void
+  onStartSession: (sessionId: Id<"attendance_sessions">) => void
+  onEndSession: (sessionId: Id<"attendance_sessions">) => void
+  onMarkAttendance?: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
 }
 
 export function SessionManagement({
   sessions,
+  sessionLoading,
   students,
   courses,
   onCreateSession,
@@ -71,25 +76,24 @@ export function SessionManagement({
   onMarkAttendance,
 }: SessionManagementProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "scheduled" | "ongoing" | "completed">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "scheduled" | "live" | "closed">("all")
   const [courseFilter, setCourseFilter] = useState<string>("all")
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false)
-  const [selectedSession, setSelectedSession] = useState<ClassSession | null>(null)
+  const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null)
 
   // Filter and search sessions
   const filteredSessions = useMemo(() => {
     return sessions.filter((session) => {
       const matchesSearch =
-        session.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.courseCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.location.toLowerCase().includes(searchQuery.toLowerCase())
+        session.sessionTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        session.courseUnitCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        session.location?.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesStatus = statusFilter === "all" || session.status === statusFilter
-      const matchesCourse = courseFilter === "all" || session.courseCode === courseFilter
-
+      const matchesCourse = courseFilter === "all" || session.courseUnitCode === courseFilter
       return matchesSearch && matchesStatus && matchesCourse
     })
   }, [sessions, searchQuery, statusFilter, courseFilter])
@@ -99,12 +103,12 @@ export function SessionManagement({
     return {
       total: sessions.length,
       scheduled: sessions.filter((s) => s.status === "scheduled").length,
-      ongoing: sessions.filter((s) => s.status === "ongoing").length,
-      completed: sessions.filter((s) => s.status === "completed").length,
+      ongoing: sessions.filter((s) => s.status === "live").length,
+      completed: sessions.filter((s) => s.status === "closed").length,
     }
   }, [sessions])
 
-  const getStatusBadge = (status: ClassSession["status"]) => {
+  const getStatusBadge = (status: Partial<AttendanceSession>["status"]) => {
     switch (status) {
       case "scheduled":
         return (
@@ -113,14 +117,14 @@ export function SessionManagement({
             Scheduled
           </Badge>
         )
-      case "ongoing":
+      case "live":
         return (
           <Badge className="gap-1 bg-emerald-500 hover:bg-emerald-600">
             <Play className="h-3 w-3" />
             Ongoing
           </Badge>
         )
-      case "completed":
+      case "closed":
         return (
           <Badge variant="outline" className="gap-1">
             <CalendarCheck className="h-3 w-3" />
@@ -152,17 +156,17 @@ export function SessionManagement({
     }).format(date)
   }
 
-  const handleEditSession = (session: ClassSession) => {
+  const handleEditSession = (session: AttendanceSession) => {
     setSelectedSession(session)
     setEditModalOpen(true)
   }
 
-  const handleDeleteSession = (session: ClassSession) => {
+  const handleDeleteSession = (session: AttendanceSession) => {
     setSelectedSession(session)
     setDeleteDialogOpen(true)
   }
 
-  const handleViewSession = (session: ClassSession) => {
+  const handleViewSession = (session: AttendanceSession) => {
     setSelectedSession(session)
     setDetailDrawerOpen(true)
   }
@@ -226,7 +230,7 @@ export function SessionManagement({
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => setStatusFilter("ongoing")}>
+          <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => setStatusFilter("live")}>
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
                 <Play className="h-6 w-6 text-emerald-500" />
@@ -239,7 +243,7 @@ export function SessionManagement({
           </Card>
           <Card
             className="cursor-pointer transition-shadow hover:shadow-md"
-            onClick={() => setStatusFilter("completed")}
+            onClick={() => setStatusFilter("closed")}
           >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-500/10">
@@ -302,7 +306,12 @@ export function SessionManagement({
               {filteredSessions.length} session{filteredSessions.length !== 1 ? "s" : ""} found
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+         {sessionLoading ?(
+                <div className="w-[90%] h-[50%] " >
+                        <Loader />
+                </div>
+         ):(
+                <CardContent className="p-0">
             {filteredSessions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
@@ -325,23 +334,23 @@ export function SessionManagement({
               <div className="divide-y">
                 {filteredSessions.map((session) => (
                   <div
-                    key={session.id}
+                    key={session._id}
                     className="flex flex-col gap-4 p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{session.courseName}</h3>
-                        <Badge variant="outline">{session.courseCode}</Badge>
+                        <h3 className="font-semibold">{session.sessionTitle}</h3>
+                        <Badge variant="outline">{session.courseUnitCode}</Badge>
                         {getStatusBadge(session.status)}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
-                          {formatDate(session.date)}
+                          {formatDate(new Date(session._creationTime||0))}
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5" />
-                          {session.startTime} - {session.endTime}
+                          {Dateformat(session.startsAt||0)} - {Dateformat(session.endsAt||0)}
                         </span>
                         <span className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5" />
@@ -349,7 +358,7 @@ export function SessionManagement({
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5" />
-                          {session.attendanceRecords.length} attended
+                          {0} attended
                         </span>
                       </div>
                     </div>
@@ -358,15 +367,27 @@ export function SessionManagement({
                       {session.status === "scheduled" && (
                         <Button
                           size="sm"
-                          onClick={() => onStartSession(session.id)}
+                          onClick={() => {
+                            if (session._id !== undefined) {
+                              onStartSession(session._id)
+                            }
+                          }}
                           className="bg-emerald-500 hover:bg-emerald-600"
                         >
                           <Play className="mr-1.5 h-3.5 w-3.5" />
                           Start Session
                         </Button>
                       )}
-                      {session.status === "ongoing" && (
-                        <Button size="sm" variant="destructive" onClick={() => onEndSession(session.id)}>
+                      {session.status === "live" && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (session._id !== undefined) {
+                              onEndSession(session._id)
+                            }
+                          }}
+                        >
                           <Square className="mr-1.5 h-3.5 w-3.5" />
                           End Session
                         </Button>
@@ -386,7 +407,7 @@ export function SessionManagement({
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          {session.status !== "completed" && (
+                          {session.status !== "closed" && (
                             <DropdownMenuItem onClick={() => handleEditSession(session)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Session
@@ -408,6 +429,7 @@ export function SessionManagement({
               </div>
             )}
           </CardContent>
+         ) }
         </Card>
       </main>
 
@@ -440,7 +462,7 @@ export function SessionManagement({
             students={students}
             onStartSession={onStartSession}
             onEndSession={onEndSession}
-            onMarkAttendance={onMarkAttendance}
+        //     onMarkAttendance={onMarkAttendance}
           />
         </>
       )}
