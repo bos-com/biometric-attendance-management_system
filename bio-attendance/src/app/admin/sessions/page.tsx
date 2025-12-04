@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { SessionManagement } from "./session-management"
 import type { ClassSession, Student, AttendanceRecord } from "../dashboard/DashboardPage"
+import useCreateSession from "@/hooks/useCreateSession"
+import { AttendanceSession } from "@/lib/types"
+
 
 // Demo course units the lecturer teaches
 const lecturerCourses = [
@@ -24,92 +27,17 @@ const demoStudents: Student[] = [
   { id: "8", name: "Lisa Anderson", registrationNumber: "STU008", email: "lisa@university.edu" },
 ]
 
-// Demo sessions
-const initialSessions: ClassSession[] = [
-  {
-    id: "1",
-    courseCode: "CS101",
-    courseName: "Introduction to Programming",
-    date: new Date(),
-    startTime: "09:00",
-    endTime: "11:00",
-    location: "Room A101",
-    status: "completed",
-    attendanceRecords: [
-      { studentId: "1", timestamp: new Date(), status: "present" },
-      { studentId: "2", timestamp: new Date(), status: "present" },
-      { studentId: "3", timestamp: new Date(), status: "late" },
-      { studentId: "4", timestamp: new Date(), status: "present" },
-      { studentId: "5", timestamp: new Date(), status: "absent" },
-    ],
-  },
-  {
-    id: "2",
-    courseCode: "CS201",
-    courseName: "Data Structures",
-    date: new Date(),
-    startTime: "14:00",
-    endTime: "16:00",
-    location: "Room B202",
-    status: "ongoing",
-    attendanceRecords: [
-      { studentId: "1", timestamp: new Date(), status: "present" },
-      { studentId: "2", timestamp: new Date(), status: "present" },
-      { studentId: "7", timestamp: new Date(), status: "present" },
-    ],
-  },
-  {
-    id: "3",
-    courseCode: "CS301",
-    courseName: "Database Systems",
-    date: new Date(Date.now() + 86400000),
-    startTime: "10:00",
-    endTime: "12:00",
-    location: "Room C303",
-    status: "scheduled",
-    attendanceRecords: [],
-  },
-  {
-    id: "4",
-    courseCode: "CS101",
-    courseName: "Introduction to Programming",
-    date: new Date(Date.now() + 86400000 * 2),
-    startTime: "09:00",
-    endTime: "11:00",
-    location: "Room A101",
-    status: "scheduled",
-    attendanceRecords: [],
-  },
-  {
-    id: "5",
-    courseCode: "CS401",
-    courseName: "Software Engineering",
-    date: new Date(Date.now() - 86400000),
-    startTime: "13:00",
-    endTime: "15:00",
-    location: "Room D404",
-    status: "completed",
-    attendanceRecords: [
-      { studentId: "1", timestamp: new Date(), status: "present" },
-      { studentId: "3", timestamp: new Date(), status: "present" },
-      { studentId: "5", timestamp: new Date(), status: "late" },
-      { studentId: "6", timestamp: new Date(), status: "present" },
-      { studentId: "8", timestamp: new Date(), status: "present" },
-    ],
-  },
-]
 
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<ClassSession[]>(initialSessions)
+  const [sessions, setSessions] = useState<ClassSession[]>([])
+  const {CreateSession} = useCreateSession();
 
-  const handleCreateSession = (newSession: Omit<ClassSession, "id" | "attendanceRecords" | "status">) => {
-    const session: ClassSession = {
-      ...newSession,
-      id: Date.now().toString(),
-      status: "scheduled",
-      attendanceRecords: [],
-    }
-    setSessions((prev) => [session, ...prev])
+  
+
+  const handleCreateSession = async (newSession: Omit<AttendanceSession, "_id" | "_creationTime"|"sessionId">) => {
+    const session = newSession
+    await CreateSession(session);
+//     setSessions((prev) => [session, ...prev])
   }
 
   const handleUpdateSession = (sessionId: string, updates: Partial<ClassSession>) => {

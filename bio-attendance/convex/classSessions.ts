@@ -3,13 +3,20 @@ import { ConvexError, v } from "convex/values";
 
 export const create = mutation({
   args: {
+        lecturerId: v.id("lecturers"),
         sessionTitle: v.string(),
         description: v.string(),
         courseUnitCode: v.string(),
         startsAt: v.number(),
         endsAt: v.number(),
-        notes: v.optional(v.string()),
+        status: v.union(
+          v.literal("scheduled"),
+          v.literal("live"),
+          v.literal("closed"),
+        ),
+        location: v.string(),
         autoClose: v.optional(v.boolean()),
+        autoStart: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (args.endsAt <= args.startsAt) {
@@ -22,17 +29,25 @@ export const create = mutation({
     ).join("");
     const sessionId = `SES-${randomPart}`;
 
-    return await ctx.db.insert("attendance_sessions", {
+    const result = await ctx.db.insert("attendance_sessions", {
       sessionId: sessionId,
+      lecturerId: args.lecturerId,
       sessionTitle: args.sessionTitle,
       description: args.description,
       courseUnitCode: args.courseUnitCode,
       startsAt: args.startsAt,
       endsAt: args.endsAt,
-      notes: args.notes,
+      location: args.location,
       autoClose: args.autoClose,
+        autoStart: args.autoStart,
       status: "scheduled",
     });
+    return {
+        success: true,
+        message: "Session created successfully",
+        status: 201,
+        session: result
+};
   },
 });
 
@@ -112,9 +127,18 @@ export const ensureLiveSession = mutation({
             endsAt: now + durationMs,
             status: "live",
             autoClose: true,
-            notes: args.notes,
+            location: "",
+            description: "",
             courseUnitCode: "",
             sessionTitle: ""
     });
   },
 });
+
+export const getCourseUnits = query({
+        args:{},
+        handler: async (ctx) => {
+                const course_units = await ctx.db.query("course_units").collect();
+                return course_units;
+        } 
+});        
