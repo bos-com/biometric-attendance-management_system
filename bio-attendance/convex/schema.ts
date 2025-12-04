@@ -8,9 +8,9 @@ export default defineSchema({
     middleName: v.optional(v.string()),
     lastName: v.string(),
     gender: v.optional(v.string()),
-    program: v.optional(v.string()),
-    courseUnits: v.optional(v.array(v.string())),
-    email: v.optional(v.string()),
+    program: v.string(),
+    courseUnits: v.array(v.string()),
+    email: v.string(),
     photoDataUrl: v.optional(v.array(v.string())),
     photoStorageId: v.optional(v.array(v.id("_storage"))),
     photoEmbeddings: v.optional(v.array(v.float64())),
@@ -18,6 +18,22 @@ export default defineSchema({
   })
     .index("by_studentId", ["studentId"])
     .index("by_lastName", ["lastName"]),
+
+    programs: defineTable({
+        program_code: v.string(),
+        name: v.string(),
+        description: v.optional(v.string()),
+        createdAt: v.number(),
+    }).index("by_program_code", ["program_code"]),
+
+    course_units: defineTable({
+        code: v.string(),
+        name: v.string(),
+        semester: v.string(),
+        programId: v.id("programs"),
+        lecturerId: v.id("lecturers"),
+        hours_per_session: v.number(),
+    }).index("by_code", ["code"]),
 
   faceEmbeddings: defineTable({
     studentId: v.id("students"),
@@ -31,10 +47,9 @@ export default defineSchema({
         dimensions:128,
   }),
 
-  sessions: defineTable({
-    sessionId: v.id("classes"),
+  attendance_sessions: defineTable({
+    sessionId: v.string(),
     courseUnitCode: v.string(),
-    studentIds: v.array(v.id("students")),
     lecturerId: v.optional(v.id("lecturers")),
     sessionTitle: v.string(),
     description: v.optional(v.string()),
@@ -46,6 +61,7 @@ export default defineSchema({
       v.literal("closed"),
     ),
     notes: v.optional(v.string()),
+    autoStart: v.optional(v.boolean()),
     autoClose: v.optional(v.boolean()),
   })
     .index("by_session", ["sessionId"])
@@ -53,18 +69,20 @@ export default defineSchema({
      .index("by_courseUnitCode", ["courseUnitCode"])
     .index("by_lecturer", ["lecturerId"]),
     
-  attendance: defineTable({
+  attendance_records: defineTable({
         courseUnitCode: v.string(), 
-        sessionId: v.id("sessions"),
-        studentIds: v.array(v.id("students")),
-        capturedAt: v.number(),
+        sessionId: v.id("attendance_sessions"),
+        studentId: v.id("students"),
         confidence: v.number(),
-        source: v.union(v.literal("auto"), v.literal("manual")),
-        frameDataUrl: v.optional(v.string()),
+        status: v.union(
+                v.literal("early"),
+                v.literal("late")),
   })
   .index("by_courseUnitCode", ["courseUnitCode"])
     .index("by_session", ["sessionId"])
-    .index("by_session_student", ["sessionId", "studentIds"]),
+    .index("by_status", ["status"])
+    .index("by_studentId_and_sessionId", ["studentId", "sessionId"])
+    .index("by_studentId", ["studentId"]),
 
   lecturers: defineTable({
     fullName: v.string(),
