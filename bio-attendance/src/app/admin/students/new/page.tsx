@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 
 const StudentRegistrationPage = () => {
-  const classes = useQuery(api.classes.list, {})
+
   const registerStudent = useMutation(api.students.registerWithFace)
   const generateUploadUrl = useAction(api.uploads.generateUploadUrl)
 
@@ -42,7 +42,6 @@ const StudentRegistrationPage = () => {
   const [gender, setGender] = useState("")
   const [courseUnitInput, setCourseUnitInput] = useState("")
   const [courseUnits, setCourseUnits] = useState<string[]>([])
-  const [selectedClasses, setSelectedClasses] = useState<Id<"classes">[]>([])
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage">[] | null>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
@@ -51,7 +50,6 @@ const StudentRegistrationPage = () => {
     status: "idle",
   })
 
-  const classOptions = useMemo<Doc<"classes">[]>(() => classes ?? [], [classes])
 
   const handleAddCourseUnit = () => {
     const trimmed = courseUnitInput.trim()
@@ -62,10 +60,6 @@ const StudentRegistrationPage = () => {
 
   const removeCourseUnit = (unit: string) => {
     setCourseUnits((prev) => prev.filter((item) => item !== unit))
-  }
-
-  const toggleClassSelection = (classId: Id<"classes">) => {
-    setSelectedClasses((prev) => (prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId]))
   }
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +119,6 @@ const StudentRegistrationPage = () => {
         program: program.trim() || undefined,
         gender: gender || undefined,
         courseUnits,
-        classIds: selectedClasses,
         photoDataUrl: undefined,
         photoStorageId: photoStorageId ?? undefined,
         photoEmbeddings:photoembeddings??undefined,
@@ -133,13 +126,9 @@ const StudentRegistrationPage = () => {
         if (!res.success) {
                   console.error(res.message)
                   setSubmitState({ status: "error", message: res.message?? "Unable to save student" })
-                    setTimeout(()=>{
-                        setSubmitState({ status: "idle",})
-                    },5000)
                     return;
         }
-      })
-      setSubmitState({ status: "success", message: "Student profile saved successfully!" })
+        setSubmitState({ status: "success", message: "Student profile saved successfully!" })
       setStudentId("")
       setFirstName("")
       setMiddleName("")
@@ -148,9 +137,9 @@ const StudentRegistrationPage = () => {
       setProgram("")
       setGender("")
       setCourseUnits([])
-      setSelectedClasses([])
       setPhotoPreview(null)
       setPhotoStorageId(null)
+      })
     } catch (err) {
       console.error(err)
     } finally {
@@ -358,52 +347,6 @@ const StudentRegistrationPage = () => {
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Class Assignment */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="border-b bg-slate-50/50 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                  <GraduationCap className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Class Assignment</CardTitle>
-                  <CardDescription>Select classes to enroll the student</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {classOptions.length === 0 ? (
-                <div className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 py-8 text-center">
-                  <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm text-muted-foreground">No classes have been created yet.</p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {classOptions.map((klass) => (
-                    <label
-                      key={klass._id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-all ${
-                        selectedClasses.includes(klass._id)
-                          ? "border-primary bg-primary/5"
-                          : "border-muted hover:border-muted-foreground/30 hover:bg-muted/30"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={selectedClasses.includes(klass._id)}
-                        onCheckedChange={() => toggleClassSelection(klass._id)}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1">
-                        <span className="font-semibold text-foreground">{klass.code}</span>
-                        <span className="mt-0.5 block text-sm text-muted-foreground">{klass.title}</span>
-                      </div>
-                    </label>
                   ))}
                 </div>
               )}

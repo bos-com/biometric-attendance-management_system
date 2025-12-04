@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 
 export const recordRecognition = mutation({
   args: {
-    sessionId: v.id("sessions"),
+    sessionId: v.id("attendance_sessions"),
     studentDocId: v.id("students"),
     confidence: v.number(),
     source: v.optional(v.union(v.literal("auto"), v.literal("manual"))),
@@ -19,9 +19,11 @@ export const recordRecognition = mutation({
     }
 
     const existing = await ctx.db
-      .query("attendance")
-      .withIndex("by_session_student", (q) =>
-        q.eq("sessionId", args.sessionId).eq("studentId", args.studentDocId),
+      .query("attendance_records")
+      .withIndex("by_studentId_and_sessionId", (q) =>q
+      .eq("studentId", args.studentDocId)
+      .eq("sessionId", args.sessionId)
+     
       )
       .unique();
 
@@ -29,22 +31,21 @@ export const recordRecognition = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("attendance", {
+    return await ctx.db.insert("attendance_records", {
       sessionId: args.sessionId,
+      courseUnitCode: session.courseUnitCode,
       studentId: args.studentDocId,
-      capturedAt: Date.now(),
       confidence: args.confidence,
-      source: args.source ?? "auto",
-      frameDataUrl: args.frameDataUrl,
+      status: args.confidence >= 0.8 ? "early" : "late",
     });
   },
 });
 
 export const forSession = query({
-  args: { sessionId: v.id("sessions") },
+  args: { sessionId: v.id("attendance_sessions") },
   handler: async (ctx, args) => {
     const records = await ctx.db
-      .query("attendance")
+      .query("attendance_records")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .order("desc")
       .collect();
@@ -66,10 +67,10 @@ export const forSession = query({
 });
 
 export const summary = query({
-  args: { sessionId: v.id("sessions") },
+  args: { sessionId: v.id("attendance_sessions") },
   handler: async (ctx, args) => {
     const records = await ctx.db
-      .query("attendance")
+      .query("attendance_records")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 

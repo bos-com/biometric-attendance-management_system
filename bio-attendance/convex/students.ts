@@ -9,10 +9,9 @@ export const registerWithFace = mutation({
     middleName: v.optional(v.string()),
     lastName: v.string(),
     gender: v.optional(v.string()),
-    program: v.optional(v.string()),
+    program: v.string(),
     courseUnits: v.optional(v.array(v.string())),
-    email: v.optional(v.string()),
-    classIds: v.optional(v.array(v.id("classes"))),
+    email: v.string(),
     photoDataUrl: v.optional(v.array(v.string())),
     photoStorageId: v.optional(v.array(v.id("_storage"))),
     photoEmbeddings: v.optional(v.array(v.float64())),
@@ -55,24 +54,6 @@ export const registerWithFace = mutation({
       });
     }
 
-    if (args.classIds) {
-      for (const classId of args.classIds) {
-        const current = await ctx.db
-          .query("rosters")
-          .withIndex("by_class_student", (q) =>
-            q.eq("classId", classId).eq("studentId", newStudentId),
-          )
-          .unique();
-        if (!current) {
-          await ctx.db.insert("rosters", {
-            classId,
-            studentId: newStudentId,
-            createdAt: now,
-          });
-        }
-      }
-    }
-
     return {
         message: "Student registered successfully.",
         success:true,
@@ -81,26 +62,7 @@ export const registerWithFace = mutation({
   },
 });
 
-export const list = query({
-  args: {
-    classId: v.optional(v.id("classes")),
-  },
-  handler: async (ctx, args) => {
-    if (args.classId) {
-      const classId = args.classId;
-      const roster = await ctx.db
-        .query("rosters")
-        .withIndex("by_class", (q) => q.eq("classId", classId))
-        .collect();
-      const students = await Promise.all(
-        roster.map((entry) => ctx.db.get(entry.studentId)),
-      );
-      return students.filter((student): student is Doc<"students"> => Boolean(student));
-    }
 
-    return await ctx.db.query("students").collect();
-  },
-});
 
 export const updateDetails = mutation({
   args: {

@@ -155,7 +155,7 @@ const VideoCapture = () => {
               label = bestMatch.label === "unknown" 
                 ? `Unknown (${bestMatch.distance.toFixed(2)})` 
                 : `${bestMatch.label} (${bestMatch.distance.toFixed(2)})`;
-              console.log("Match:", bestMatch.label, "Distance:", bestMatch.distance);
+        //       console.log("Match:", bestMatch.label, "Distance:", bestMatch.distance);
             }
 
             const drawBox = new faceapi.draw.DrawBox(box, { label });

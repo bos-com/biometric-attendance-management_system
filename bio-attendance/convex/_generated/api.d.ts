@@ -10,7 +10,6 @@
 
 import type * as attendance from "../attendance.js";
 import type * as classSessions from "../classSessions.js";
-import type * as classes from "../classes.js";
 import type * as faces from "../faces.js";
 import type * as lecturers from "../lecturers.js";
 import type * as students from "../students.js";
@@ -25,7 +24,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   attendance: typeof attendance;
   classSessions: typeof classSessions;
-  classes: typeof classes;
   faces: typeof faces;
   lecturers: typeof lecturers;
   students: typeof students;
