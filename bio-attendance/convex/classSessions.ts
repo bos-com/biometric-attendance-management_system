@@ -63,13 +63,16 @@ export const setStatus = mutation({
   handler: async (ctx, args) => {
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
-      throw new ConvexError("Session not found");
+        return {
+            success: false,
+            message: "Session not found",
+            status: 404
+        }
     }
 
-    await ctx.db.patch(session._id, {
+    const res = await ctx.db.patch(session._id, {
       status: args.status,
-      startsAt:
-        args.status === "live" && session.startsAt > Date.now()
+      startsAt:args.status === "live" && session.startsAt > Date.now()
           ? Date.now()
           : session.startsAt,
       endsAt:
@@ -77,6 +80,11 @@ export const setStatus = mutation({
           ? Date.now()
           : session.endsAt,
     });
+    return {
+        success: true,
+        message: "Session status updated successfully",
+        status: 200,
+        session: res}
   },
 });
 
@@ -148,5 +156,13 @@ export const getSessions = query({
         handler: async (ctx) => {
                 const sessions = await ctx.db.query("attendance_sessions").collect();
                 return sessions;
+        }
+});
+
+export const getSessionById = query({
+        args: {sessionId: v.id("attendance_sessions")},
+        handler: async (ctx, args) => {
+                const session = await ctx.db.get(args.sessionId);
+                return session;
         }
 });

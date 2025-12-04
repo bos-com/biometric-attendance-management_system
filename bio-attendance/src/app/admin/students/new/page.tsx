@@ -27,11 +27,13 @@ import {
   Upload,
   Award as IdCard,
 } from "lucide-react"
+import useGetAllPrograms from "@/hooks/useGetAllPrograms";
 
 const StudentRegistrationPage = () => {
 
   const registerStudent = useMutation(api.students.registerWithFace)
   const generateUploadUrl = useAction(api.uploads.generateUploadUrl)
+  const { programs, loading: programsLoading } = useGetAllPrograms();
 
   const [studentId, setStudentId] = useState("")
   const [firstName, setFirstName] = useState("")
@@ -72,7 +74,7 @@ const StudentRegistrationPage = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
+        setIsSubmitting(true)
     let file: File | null = null
     if (photoPreview) {
       const response = await fetch(photoPreview)
@@ -109,7 +111,7 @@ const StudentRegistrationPage = () => {
 
     try {
       setSubmitState({ status: "idle" })
-      setIsSubmitting(true)
+      
       await registerStudent({
         studentId: studentId.trim(),
         firstName: firstName.trim(),
@@ -214,13 +216,17 @@ const StudentRegistrationPage = () => {
                     <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     Program
                   </Label>
-                  <Input
-                    id="program"
-                    value={program}
-                    onChange={(event) => setProgram(event.target.value)}
-                    placeholder="e.g. BSc Computer Science"
-                    className="h-11"
-                  />
+                    <Select value={program} onValueChange={setProgram} >
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Select program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {programs && programs.map((prog) => (
+                        <SelectItem key={prog._id} value={prog.name}>{prog.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
                 </div>
 
                 <div className="space-y-2">

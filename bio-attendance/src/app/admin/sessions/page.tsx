@@ -2,20 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { SessionManagement } from "./session-management"
-import type { ClassSession, Student, AttendanceRecord } from "../dashboard/DashboardPage"
+import type {Student, AttendanceRecord } from "../dashboard/DashboardPage"
 import useCreateSession from "@/hooks/useCreateSession"
 import { AttendanceSession } from "@/lib/types"
 import useGetSessions from "@/hooks/useGetSessions"
 import { Id } from "@/convex/_generated/dataModel"
+import useGetAllCourseUnits from "@/hooks/useGetAllCourseUnits"
+import { useLecturerSession } from "@/hooks/useLecturerSession"
+import UseUpdateSessionStatus from "@/hooks/UseUpdateSessionStatus"
 
-
-// Demo course units the lecturer teaches
-const lecturerCourses = [
-  { code: "CS101", name: "Introduction to Programming" },
-  { code: "CS201", name: "Data Structures" },
-  { code: "CS301", name: "Database Systems" },
-  { code: "CS401", name: "Software Engineering" },
-]
 
 // Demo students
 const demoStudents: Student[] = [
@@ -31,6 +26,11 @@ const demoStudents: Student[] = [
 
 
 export default function SessionsPage() {
+        const { session: lecturerSession } = useLecturerSession();
+        const { UpdateSessionStatus } = UseUpdateSessionStatus();
+const { courseUnits, loading: courseUnitsLoading } = useGetAllCourseUnits();
+const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.filter(cu => cu.lecturerId === lecturerSession?.userId);
+
   const [sessions, setSessions] = useState<AttendanceSession[]>([])
   const { sessions: fetchedSessions, loading, error } = useGetSessions();
   const {CreateSession} = useCreateSession();
@@ -53,6 +53,7 @@ export default function SessionsPage() {
   }
 
   const handleUpdateSession = (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => {
+        
     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, ...updates } : s)))
   }
 
@@ -60,12 +61,14 @@ export default function SessionsPage() {
     setSessions((prev) => prev.filter((s) => s._id !== sessionId))
   }
 
-  const handleStartSession = (sessionId: Id<"attendance_sessions">) => {
-    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "live" } : s)))
+  const handleStartSession = async (sessionId: Id<"attendance_sessions">) => {
+        await UpdateSessionStatus(sessionId, "live");
+//     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "live" } : s)))
   }
 
-  const handleEndSession = (sessionId: Id<"attendance_sessions">) => {
-    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "closed" } : s)))
+  const handleEndSession = async (sessionId: Id<"attendance_sessions">) => {
+    await UpdateSessionStatus(sessionId, "closed");
+//     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "closed" } : s)))
   }
 
 //   const handleMarkAttendance = (sessionId: string, studentId: string, status: "present" | "absent" | "late") => {

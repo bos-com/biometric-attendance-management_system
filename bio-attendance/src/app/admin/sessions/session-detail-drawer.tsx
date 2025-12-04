@@ -27,6 +27,7 @@ import {
 import { AttendanceSession } from "@/lib/types"
 import { Dateformat } from "@/lib/utils"
 import { Id } from "@/convex/_generated/dataModel"
+import useGetAttendancePerSession from "@/hooks/useGetAttendancePerSession"
 
 interface SessionDetailDrawerProps {
   open: boolean
@@ -49,6 +50,7 @@ export function SessionDetailDrawer({
 }: SessionDetailDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
+  const { attendance, loading: attendanceLoading, error: attendanceError } = useGetAttendancePerSession(session._id)
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -61,37 +63,38 @@ export function SessionDetailDrawer({
 
   // Get attendance status for a student
   const getAttendanceStatus = (studentId: string) => {
-    return session.attendanceRecords.find((r) => r.studentId === studentId)?.status
+    return sessionAttendance.find((r) => r?.studentId === studentId)?.status
   }
+  const sessionAttendance = attendanceLoading || attendanceError || !attendance ? [] : attendance
 
   // Filter students based on search and tab
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
+    return sessionAttendance.filter((student) => {
       const matchesSearch =
-        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase())
+        student?.student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student?.student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const status = getAttendanceStatus(student.id)
+      const status = sessionAttendance.find((r) => r?.studentId === student?.student._id)?.status
 
       if (activeTab === "all") return matchesSearch
-      if (activeTab === "present") return matchesSearch && status === "present"
+      if (activeTab === "present") return matchesSearch && status === "early"
       if (activeTab === "late") return matchesSearch && status === "late"
-      if (activeTab === "absent") return matchesSearch && status === "absent"
+      if (activeTab === "absent") return matchesSearch && status === "late"
       if (activeTab === "unmarked") return matchesSearch && !status
 
       return matchesSearch
     })
-  }, [students, searchQuery, activeTab, session.attendanceRecords])
+  }, [students, searchQuery, activeTab, sessionAttendance])
 
   // Stats
   const stats = useMemo(() => {
-    const present = session.attendanceRecords.filter((r) => r.status === "present").length
-    const late = session.attendanceRecords.filter((r) => r.status === "late").length
-    const absent = session.attendanceRecords.filter((r) => r.status === "absent").length
-    const unmarked = students.length - session.attendanceRecords.length
+    const present = sessionAttendance.filter((r) => r?.status === "early").length
+    const late = sessionAttendance.filter((r) => r?.status === "late").length
+//     const absent = sessionAttendance.filter((r) => r?.status === "absent").length
+    const unmarked = students.length - sessionAttendance.length
 
-    return { present, late, absent, unmarked, total: students.length }
-  }, [session.attendanceRecords, students.length])
+    return { present, late, unmarked, total: students.length }
+  }, [sessionAttendance, students.length])
 
   const getStatusBadge = (status: AttendanceSession["status"]) => {
     switch (status) {
@@ -198,7 +201,7 @@ export function SessionDetailDrawer({
           </div>
           <div className="text-center p-2 rounded-lg bg-red-500/10">
             <UserX className="h-4 w-4 text-red-600 mx-auto mb-1" />
-            <p className="text-lg font-semibold text-red-600">{stats.absent}</p>
+            <p className="text-lg font-semibold text-red-600">{stats.late}</p>
             <p className="text-xs text-muted-foreground">Absent</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-gray-500/10">
@@ -250,7 +253,7 @@ export function SessionDetailDrawer({
                 </div>
               ) : (
                 filteredStudents.map((student) => {
-                  const status = getAttendanceStatus(student.id)
+                  const status = getAttendanceStatus(student?._id)
                   const isOngoing = session.status === "live"
 
                   return (
