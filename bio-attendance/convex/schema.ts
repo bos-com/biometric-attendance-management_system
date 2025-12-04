@@ -17,6 +17,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_studentId", ["studentId"])
+    .index("by_courseUnits", ["courseUnits"])
     .index("by_lastName", ["lastName"]),
 
     programs: defineTable({
@@ -33,7 +34,8 @@ export default defineSchema({
         programId: v.id("programs"),
         lecturerId: v.id("lecturers"),
         hours_per_session: v.number(),
-    }).index("by_code", ["code"]),
+    }).index("by_courseCode", ["code"])
+    .index("by_lecturer", ["lecturerId"]),
 
   faceEmbeddings: defineTable({
     studentId: v.id("students"),

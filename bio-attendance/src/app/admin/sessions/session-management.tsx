@@ -44,6 +44,14 @@ import { AttendanceSession } from "@/lib/types"
 import { Id } from "@/convex/_generated/dataModel"
 import {Dateformat } from "@/lib/utils"
 import Loader from "@/components/Loader/loader"
+import useGetCourseUnitByCode from "@/hooks/useGetCourseUnitByCode"
+
+// Separate component to safely use hook inside a loop
+function CourseUnitName({ courseCode }: { courseCode: string }) {
+  const { courseUnit, loading } = useGetCourseUnitByCode(courseCode);
+  if (loading) return <span className="text-muted-foreground">Loading...</span>;
+  return <span className="font-bold" >{courseUnit?.name ?? courseCode}</span>;
+}
 
 interface Course {
   code: string
@@ -112,21 +120,21 @@ export function SessionManagement({
     switch (status) {
       case "scheduled":
         return (
-          <Badge variant="secondary" className="gap-1">
+          <Badge variant="secondary" className="gap-1 bg-amber-200">
             <CalendarPlus className="h-3 w-3" />
             Scheduled
           </Badge>
         )
       case "live":
         return (
-          <Badge className="gap-1 bg-emerald-500 hover:bg-emerald-600">
+          <Badge className="gap-1 bg-green-600">
             <Play className="h-3 w-3" />
             Ongoing
           </Badge>
         )
       case "closed":
         return (
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 bg-red-300 ">
             <CalendarCheck className="h-3 w-3" />
             Completed
           </Badge>
@@ -177,17 +185,12 @@ export function SessionManagement({
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-green-100/80">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
+            <div className="px-3" >
               <h1 className="text-xl font-semibold">Session Management</h1>
               <p className="text-sm text-muted-foreground">Create, schedule, and manage class sessions</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center gap-2">
             <Link href="/admin/attendance">
               <Button variant="outline" size="sm">
                 <ScanLine className="mr-2 h-4 w-4" />
@@ -289,8 +292,8 @@ export function SessionManagement({
                   <TabsList>
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-                    <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                    <TabsTrigger value="live">Ongoing</TabsTrigger>
+                    <TabsTrigger value="closed">Completed</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -331,16 +334,18 @@ export function SessionManagement({
                 )}
               </div>
             ) : (
-              <div className="divide-y">
-                {filteredSessions.map((session) => (
+              <div className="divide-y  p-2">
+                {filteredSessions.sort((a, b) => a.endsAt - b.endsAt).map((session) => (
                   <div
                     key={session._id}
-                    className="flex flex-col gap-4 p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-4 p-4 rounded-lg border border-green-100 mt-2 transition-colors hover:bg-blue-50/50 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{session.sessionTitle}</h3>
+                    <div className="flex-1 min-w-0  ">
+                      <div className="flex flex-wrap items-center gap-2 mb-2  ">
+                        <CourseUnitName courseCode={session.courseUnitCode} />
                         <Badge variant="outline">{session.courseUnitCode}</Badge>
+                        <h3 className="">[{session.sessionTitle}]</h3>
+                        
                         {getStatusBadge(session.status)}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -348,9 +353,9 @@ export function SessionManagement({
                           <Calendar className="h-3.5 w-3.5" />
                           {formatDate(new Date(session._creationTime||0))}
                         </span>
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-black md:font-semibold ">
                           <Clock className="h-3.5 w-3.5" />
-                          {Dateformat(session.startsAt||0)} - {Dateformat(session.endsAt||0)}
+                          from <span className="text-green-800 md:font-bold" >{Dateformat(session.startsAt||0)}</span> <span className="md:font-bold" >to</span> <span className="text-red-500" >{Dateformat(session.endsAt||0)}</span>
                         </span>
                         <span className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5" />
@@ -372,7 +377,7 @@ export function SessionManagement({
                               onStartSession(session._id)
                             }
                           }}
-                          className="bg-emerald-500 hover:bg-emerald-600"
+                          className="bg-emerald-500 hover:bg-emerald-600 hover:cursor-pointer"
                         >
                           <Play className="mr-1.5 h-3.5 w-3.5" />
                           Start Session
@@ -382,6 +387,7 @@ export function SessionManagement({
                         <Button
                           size="sm"
                           variant="destructive"
+                          className="hover:cursor-pointer"
                           onClick={() => {
                             if (session._id !== undefined) {
                               onEndSession(session._id)
@@ -392,10 +398,19 @@ export function SessionManagement({
                           End Session
                         </Button>
                       )}
+                      {session.status === "closed" && (
+                        <Button
+                          size="sm"
+                          className="hover:cursor-not-allowed bg-red-400 hover:bg-red-400 "
+                        >
+                          Session Ended
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => handleViewSession(session)}>
                         <Eye className="mr-1.5 h-3.5 w-3.5" />
                         View
                       </Button>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button size="sm" variant="ghost">

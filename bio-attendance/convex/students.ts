@@ -91,3 +91,35 @@ export const updateDetails = mutation({
     });
   },
 });
+
+export const getAllStudents = query({
+  args: {},
+  handler: async (ctx) => {
+    const students  = await ctx.db.query("students").order("asc").collect();
+        return students;  
+},
+});
+export const getstudentsPerLecturer = query({
+  args: {
+    lecturerId: v.id("lecturers"),
+        },
+        handler: async (ctx, args) => {
+                const courseUnits = await ctx.db
+                  .query("course_units")
+                  .withIndex("by_lecturer", (q) =>
+                    q.eq("lecturerId", args.lecturerId),
+                  )
+                  .collect();
+
+                  const studentsSet = new Set<Doc<"students">>();
+
+                  for (const courseUnit of courseUnits) {
+                    const studentsInCourse = await ctx.db
+                      .query("students")
+                      .withIndex("by_courseUnits", (q) =>
+                        q.eq("courseUnits", courseUnit.code),
+                      )
+                      .collect();
+
+        },
+});
