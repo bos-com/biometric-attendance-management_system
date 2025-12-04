@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarDays, Clock, MapPin, Loader2 } from "lucide-react"
+import { AttendanceSession } from "@/lib/types"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface Course {
   code: string
@@ -25,9 +27,9 @@ interface Course {
 interface EditSessionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  session: ClassSession
+  session: AttendanceSession
   courses: Course[]
-  onUpdateSession: (sessionId: string, updates: Partial<ClassSession>) => void
+  onUpdateSession: (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => void
 }
 
 export function EditSessionModal({ open, onOpenChange, session, courses, onUpdateSession }: EditSessionModalProps) {
@@ -43,15 +45,15 @@ export function EditSessionModal({ open, onOpenChange, session, courses, onUpdat
   useEffect(() => {
     if (session) {
       const dateStr =
-        session.date instanceof Date
-          ? session.date.toISOString().split("T")[0]
-          : new Date(session.date).toISOString().split("T")[0]
+        session._creationTime instanceof Date
+          ? session._creationTime.toISOString().split("T")[0]
+          : new Date(session._creationTime).toISOString().split("T")[0]
 
       setFormData({
-        courseCode: session.courseCode,
+        courseCode: session.courseUnitCode,
         date: dateStr,
-        startTime: session.startTime,
-        endTime: session.endTime,
+        startTime: session.startsAt.toString(),
+        endTime: session.endsAt.toString(),
         location: session.location,
       })
     }
@@ -66,12 +68,11 @@ export function EditSessionModal({ open, onOpenChange, session, courses, onUpdat
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    onUpdateSession(session.id, {
-      courseCode: formData.courseCode,
-      courseName: selectedCourse?.name || session.courseName,
-      date: new Date(formData.date),
-      startTime: formData.startTime,
-      endTime: formData.endTime,
+    onUpdateSession(session._id, {
+      courseUnitCode: formData.courseCode,
+      sessionTitle: session.sessionTitle,
+      startsAt: Number(formData.startTime),
+      endsAt: Number(formData.endTime),
       location: formData.location,
     })
 
