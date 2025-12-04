@@ -150,3 +150,11 @@ export const getSessions = query({
                 return sessions;
         }
 });
+
+export const getSessionById = query({
+        args: {sessionId: v.id("attendance_sessions")},
+        handler: async (ctx, args) => {
+                const session = await ctx.db.get(args.sessionId);
+                return session;
+        }
+});

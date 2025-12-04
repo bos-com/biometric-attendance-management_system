@@ -72,7 +72,7 @@ const StudentRegistrationPage = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
+        setIsSubmitting(true)
     let file: File | null = null
     if (photoPreview) {
       const response = await fetch(photoPreview)
@@ -109,7 +109,7 @@ const StudentRegistrationPage = () => {
 
     try {
       setSubmitState({ status: "idle" })
-      setIsSubmitting(true)
+      
       await registerStudent({
         studentId: studentId.trim(),
         firstName: firstName.trim(),
