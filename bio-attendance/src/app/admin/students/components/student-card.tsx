@@ -5,34 +5,34 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/adminComponents/ui/avatar"
 import { Badge } from "@/adminComponents/ui/badge"
 import { Student } from "@/lib/types";
-
+import useGetStudentCourseAttendance from "@/hooks/useGetStudentCourseAttendance";
 interface StudentCardProps {
   student: Student
-  attendanceRate: number
   onClick: () => void
 }
 
-export function StudentCard({ student, attendanceRate, onClick }: StudentCardProps) {
+export function StudentCard({ student, onClick }: StudentCardProps) {
+        const { records, stats, loading } = useGetStudentCourseAttendance(student._id,"CS101");
   const getAttendanceBadge = () => {
-    if (attendanceRate >= 80) {
+    if (stats.attendanceRate >= 80) {
       return (
         <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 gap-1">
           <TrendingUp className="h-3 w-3" />
-          {attendanceRate}%
+          {stats.attendanceRate}%
         </Badge>
       )
-    } else if (attendanceRate >= 60) {
+    } else if (stats.attendanceRate >= 60) {
       return (
         <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 gap-1">
           <Minus className="h-3 w-3" />
-          {attendanceRate}%
+          {stats.attendanceRate}%
         </Badge>
       )
     } else {
       return (
         <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20 gap-1">
           <TrendingDown className="h-3 w-3" />
-          {attendanceRate}%
+          {stats.attendanceRate}%
         </Badge>
       )
     }

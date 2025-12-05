@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/adminComponents/ui/dropdown-menu"
 import { Badge } from "@/adminComponents/ui/badge"
 import type { StudentDetail, AttendanceEntry } from "../students"
-import { CourseUnit } from "@/lib/types";
+import { AttendanceRecord, CourseUnit } from "@/lib/types";
 import { Student } from "@/lib/types";
 import { StudentCard } from "./student-card"
 import { StudentDetailModal } from "./student-detail-modal"
@@ -30,7 +30,7 @@ interface CourseStudentsViewProps {
   selectedCourse: CourseUnit
   students: Student[]
   onCourseChange: (courseCode: string|null) => void
-  getAttendanceForStudent: (studentId: Id<"students">) => AttendanceEntry[]
+  getAttendanceForStudent?: (studentId: Id<"students">) => AttendanceRecord[]
 }
 
 export function CourseStudentsView({
@@ -72,13 +72,7 @@ export function CourseStudentsView({
       return 0
     })
 
-  const calculateAttendanceRate = (studentId: Id<"students">): number => {
-    const attendance = getAttendanceForStudent(studentId)
-    const courseAttendance = attendance.filter((a) => a.courseCode === selectedCourse.code)
-    if (courseAttendance.length === 0) return 0
-    const presentCount = courseAttendance.filter((a) => a.status === "present" || a.status === "late").length
-    return Math.round((presentCount / courseAttendance.length) * 100)
-  }
+
 
   return (
     <div className="h-full w-full  bg-green-50/80">
@@ -232,7 +226,6 @@ export function CourseStudentsView({
               <StudentCard
                 key={student._id}
                 student={student}
-                attendanceRate={calculateAttendanceRate(student._id)}
                 onClick={() => setSelectedStudent(student)}
               />
             ))}
@@ -246,7 +239,6 @@ export function CourseStudentsView({
         courseCode={selectedCourse.code}
         open={!!selectedStudent}
         onOpenChange={(open) => !open && setSelectedStudent(null)}
-        attendanceHistory={selectedStudent ? getAttendanceForStudent(selectedStudent._id) : []}
       />
     </div>
   )

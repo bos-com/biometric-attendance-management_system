@@ -46,12 +46,24 @@ import {Dateformat } from "@/lib/utils"
 import Loader from "@/components/Loader/loader"
 import useGetCourseUnitByCode from "@/hooks/useGetCourseUnitByCode"
 import { Student } from "@/lib/types";
+import useGetAttendancePerSession from "@/hooks/useGetAttendancePerSession"
 
 // Separate component to safely use hook inside a loop
 export function CourseUnitName({ courseCode }: { courseCode: string }) {
   const { courseUnit, loading } = useGetCourseUnitByCode(courseCode);
   if (loading) return <span className="text-muted-foreground">Loading...</span>;
   return <span className="font-bold" >{courseUnit?.name ?? courseCode}</span>;
+}
+
+// Component to display attendance count for a session
+function SessionAttendanceCount({ sessionId }: { sessionId: Id<"attendance_sessions"> }) {
+  const { attendance, loading } = useGetAttendancePerSession(sessionId);
+  
+  if (loading) return <span className="text-muted-foreground">...</span>;
+  
+  const presentCount = attendance?.filter((r) => r?.status === "present" || r?.status === "late").length ?? 0;
+  
+  return <span>{presentCount} attended</span>;
 }
 
 interface Course {
@@ -364,7 +376,7 @@ export function SessionManagement({
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5" />
-                          {0} attended
+                          <SessionAttendanceCount sessionId={session._id} />
                         </span>
                       </div>
                     </div>

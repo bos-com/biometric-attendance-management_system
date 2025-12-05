@@ -5,7 +5,7 @@ import { CourseStudentsView } from "./components/course-students-view"
 import useGetStudentsPerLecturer from "@/hooks/useGetStudentsPerLecturer"
 import { useLecturerSession } from "@/hooks/useLecturerSession"
 import { Id } from "@/convex/_generated/dataModel"
-import { Student } from "@/lib/types";
+import { AttendanceRecord, Student } from "@/lib/types";
 import useGetCourseUnitByLecture from "@/hooks/useGetCourseUnitByLecture";
 import Loader from "@/components/Loader/loader"
 // Types
@@ -196,32 +196,7 @@ const demoStudents: StudentDetail[] = [
   },
 ]
 
-// Generate attendance history for students
-const generateAttendanceHistory = (studentId: string): AttendanceEntry[] => {
-  const statuses: ("present" | "absent" | "late")[] = ["present", "present", "present", "late", "absent"]
-  const courses = ["CS101", "CS201", "CS301", "CS401"]
-  const entries: AttendanceEntry[] = []
 
-  // Generate 12 weeks of attendance data
-  for (let week = 0; week < 12; week++) {
-    const sessionDate = new Date()
-    sessionDate.setDate(sessionDate.getDate() - (12 - week) * 7)
-
-    courses.forEach((courseCode, idx) => {
-      // Randomly assign attendance based on student ID for consistency
-      const randomSeed = Number.parseInt(studentId) + week + idx
-      const status = statuses[randomSeed % statuses.length]
-      entries.push({
-        sessionId: `session-${week}-${idx}`,
-        sessionDate,
-        courseCode,
-        status,
-      })
-    })
-  }
-
-  return entries
-}
 
 export default function CourseStudentsPage() {
        
@@ -257,9 +232,6 @@ export default function CourseStudentsPage() {
     return <div>Loading course...</div>
   }
 
-  const getAttendanceForStudent = (studentId: string): AttendanceEntry[] => {
-    return generateAttendanceHistory(studentId)
-  }
 
   return (
     <div className="w-full h-full" >
@@ -268,7 +240,7 @@ export default function CourseStudentsPage() {
       selectedCourse={selectedCourse}
       students={lecturerStudents}
       onCourseChange={setSelectedCourseCode}
-      getAttendanceForStudent={getAttendanceForStudent}
+//       getAttendanceForStudent={getAttendanceForStudent}
     />
     </div>
   )
