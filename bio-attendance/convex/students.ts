@@ -102,24 +102,22 @@ export const getAllStudents = query({
 export const getstudentsPerLecturer = query({
   args: {
     lecturerId: v.id("lecturers"),
-        },
-        handler: async (ctx, args) => {
-                const courseUnits = await ctx.db
-                  .query("course_units")
-                  .withIndex("by_lecturer", (q) =>
-                    q.eq("lecturerId", args.lecturerId),
-                  )
-                  .collect();
+  },
+  handler: async (ctx, args) => {
+    const courseUnits = await ctx.db
+      .query("course_units")
+      .withIndex("by_lecturer", (q) => q.eq("lecturerId", args.lecturerId))
+      .collect();
 
-                  const studentsSet = new Set<Doc<"students">>();
+    const courseUnitsCodes = new Set(courseUnits.map((cu) => cu.code));
 
-                  for (const courseUnit of courseUnits) {
-                    const studentsInCourse = await ctx.db
-                      .query("students")
-                      .withIndex("by_courseUnits", (q) =>
-                        q.eq("courseUnits", courseUnit.code),
-                      )
-                      .collect();
+    // Get all students and filter those who have at least one matching course
+    const allStudents = await ctx.db.query("students").collect();
 
-        },
+    const matchingStudents = allStudents.filter((student) =>
+      student.courseUnits.some((code) => courseUnitsCodes.has(code))
+    );
+
+    return matchingStudents;
+  },
 });
