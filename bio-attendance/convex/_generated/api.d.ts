@@ -10,6 +10,7 @@
 
 import type * as attendance from "../attendance.js";
 import type * as classSessions from "../classSessions.js";
+import type * as crons from "../crons.js";
 import type * as faces from "../faces.js";
 import type * as lecturers from "../lecturers.js";
 import type * as programs from "../programs.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   attendance: typeof attendance;
   classSessions: typeof classSessions;
+  crons: typeof crons;
   faces: typeof faces;
   lecturers: typeof lecturers;
   programs: typeof programs;
