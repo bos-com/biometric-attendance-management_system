@@ -2,6 +2,7 @@
 import { AppSidebar } from "@/adminComponents/app-sidebar";
 import { SidebarProvider,SidebarTrigger } from "@/adminComponents/ui/sidebar";
 import { DashboardHeader } from "./dashboard/dashboard-header"
+import { FloatingCameraWidget } from "@/components/FloatingCameraWidget";
 
 export default function ProfileLayout({
   children,
@@ -20,5 +21,8 @@ export default function ProfileLayout({
         {children}
       </main>
       </SidebarProvider>
+      
+      {/* Floating Camera Widget - visible when recording */}
+      <FloatingCameraWidget />
     </div>      
   );}

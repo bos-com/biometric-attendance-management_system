@@ -27,6 +27,7 @@ import {
   useSidebar,
 } from "@/adminComponents/ui/sidebar"
 import { useLecturerSession } from "@/hooks/useLecturerSession";
+import Link from "next/link";
 
 export function NavUser({
   user,
@@ -87,9 +88,12 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer">
-                <UserCircleIcon />
+              <DropdownMenuItem className="cursor-pointer gap-2 ">
+                <Link href="/admin/profile" className="flex items-center w-full ">
+
+<UserCircleIcon />
                 Account
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
