@@ -1,6 +1,4 @@
 "use client"
-
-import type { ClassSession } from "../dashboard/DashboardPage"
 import {
   AlertDialog,
   AlertDialogAction,

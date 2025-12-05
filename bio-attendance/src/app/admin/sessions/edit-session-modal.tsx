@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import type { ClassSession } from "../dashboard/DashboardPage"
 import {
   Dialog,
   DialogContent,

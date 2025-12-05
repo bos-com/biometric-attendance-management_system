@@ -1,19 +1,21 @@
 "use client"
 
-import type { ClassSession } from "./DashboardPage"
+import { AttendanceSession } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/adminComponents/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/adminComponents/ui/tabs"
 import { Calendar, Clock, MapPin, Users, Play, Square, Eye, ChevronRight } from "lucide-react"
+import { Id } from "@/convex/_generated/dataModel"
+import { Dateformat } from "@/lib/utils"
 
 interface SessionsListProps {
-  sessions: ClassSession[]
-  activeTab: "all" | "scheduled" | "ongoing" | "completed"
-  onTabChange: (tab: "all" | "scheduled" | "ongoing" | "completed") => void
-  onSelectSession: (session: ClassSession) => void
-  onStartSession: (sessionId: string) => void
-  onEndSession: (sessionId: string) => void
+  sessions: AttendanceSession[]
+  activeTab: "all" | "scheduled" | "live" | "closed"
+  onTabChange: (tab: "all" | "scheduled" | "live" | "closed") => void
+  onSelectSession: (session: AttendanceSession) => void
+  onStartSession: (sessionId: Id<"attendance_sessions">) => void
+  onEndSession: (sessionId: Id<"attendance_sessions">) => void
 }
 
 export function SessionsList({
@@ -24,23 +26,23 @@ export function SessionsList({
   onStartSession,
   onEndSession,
 }: SessionsListProps) {
-  const getStatusBadge = (status: ClassSession["status"]) => {
+  const getStatusBadge = (status: AttendanceSession["status"]) => {
     switch (status) {
       case "scheduled":
         return <Badge variant="secondary">Scheduled</Badge>
-      case "ongoing":
-        return <Badge className="bg-success text-success-foreground hover:bg-success/90">Ongoing</Badge>
-      case "completed":
-        return <Badge variant="outline">Completed</Badge>
+      case "live":
+        return <Badge className="bg-success text-success-foreground hover:bg-success/90">Live</Badge>
+      case "closed":
+        return <Badge variant="outline">Closed</Badge>
     }
   }
 
-  const formatDate = (date: Date) => {
+  const formatDateFromTimestamp = (timestamp: number) => {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
-    }).format(date)
+    }).format(new Date(timestamp))
   }
 
   return (
@@ -55,8 +57,8 @@ export function SessionsList({
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-              <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
+              <TabsTrigger value="live">Live</TabsTrigger>
+              <TabsTrigger value="closed">Closed</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -72,33 +74,29 @@ export function SessionsList({
           <div className="divide-y">
             {sessions.map((session) => (
               <div
-                key={session.id}
+                key={session._id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-muted/50 transition-colors gap-4"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold truncate">{session.courseName}</h3>
+                    <h3 className="font-semibold truncate">{session.sessionTitle}</h3>
                     <Badge variant="outline" className="shrink-0">
-                      {session.courseCode}
+                      {session.courseUnitCode}
                     </Badge>
                     {getStatusBadge(session.status)}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5" />
-                      {formatDate(session.date)}
+                      {formatDateFromTimestamp(session.startsAt)}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5" />
-                      {session.startTime} - {session.endTime}
+                      {Dateformat(session.startsAt)} - {Dateformat(session.endsAt)}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5" />
                       {session.location}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5" />
-                      {session.attendanceRecords.length} attended
                     </span>
                   </div>
                 </div>
@@ -109,20 +107,20 @@ export function SessionsList({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onStartSession(session.id)
+                        onStartSession(session._id)
                       }}
                     >
                       <Play className="mr-1.5 h-3.5 w-3.5" />
                       Start
                     </Button>
                   )}
-                  {session.status === "ongoing" && (
+                  {session.status === "live" && (
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onEndSession(session.id)
+                        onEndSession(session._id)
                       }}
                     >
                       <Square className="mr-1.5 h-3.5 w-3.5" />
