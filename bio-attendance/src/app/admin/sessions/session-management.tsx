@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
-import type { ClassSession, Student } from "../dashboard/DashboardPage"
+import type { ClassSession, } from "../dashboard/DashboardPage"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,9 +45,10 @@ import { Id } from "@/convex/_generated/dataModel"
 import {Dateformat } from "@/lib/utils"
 import Loader from "@/components/Loader/loader"
 import useGetCourseUnitByCode from "@/hooks/useGetCourseUnitByCode"
+import { Student } from "@/lib/types";
 
 // Separate component to safely use hook inside a loop
-function CourseUnitName({ courseCode }: { courseCode: string }) {
+export function CourseUnitName({ courseCode }: { courseCode: string }) {
   const { courseUnit, loading } = useGetCourseUnitByCode(courseCode);
   if (loading) return <span className="text-muted-foreground">Loading...</span>;
   return <span className="font-bold" >{courseUnit?.name ?? courseCode}</span>;
@@ -68,7 +69,7 @@ interface SessionManagementProps {
   onDeleteSession: (sessionId: Id<"attendance_sessions">) => void
   onStartSession: (sessionId: Id<"attendance_sessions">) => void
   onEndSession: (sessionId: Id<"attendance_sessions">) => void
-  onMarkAttendance?: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
+  onMarkAttendance: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
 }
 
 export function SessionManagement({
@@ -335,7 +336,7 @@ export function SessionManagement({
               </div>
             ) : (
               <div className="divide-y  p-2">
-                {filteredSessions.sort((a, b) => a.endsAt - b.endsAt).map((session) => (
+                {filteredSessions.sort((b, a) => a.startsAt - b.startsAt).map((session) => (
                   <div
                     key={session._id}
                     className="flex flex-col gap-4 p-4 rounded-lg border border-green-100 mt-2 transition-colors hover:bg-blue-50/50 sm:flex-row sm:items-center sm:justify-between"
@@ -477,7 +478,7 @@ export function SessionManagement({
             students={students}
             onStartSession={onStartSession}
             onEndSession={onEndSession}
-        //     onMarkAttendance={onMarkAttendance}
+            onMarkAttendance={onMarkAttendance}
           />
         </>
       )}

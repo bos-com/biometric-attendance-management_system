@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import type { ClassSession, Student } from "../dashboard/DashboardPage"
+import type { ClassSession, } from "../dashboard/DashboardPage"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/adminComponents/ui/sheet"
 import { Button } from "@/adminComponents/ui/button"
 import { Badge } from "@/adminComponents/ui/badge"
@@ -28,6 +28,8 @@ import { AttendanceSession } from "@/lib/types"
 import { Dateformat } from "@/lib/utils"
 import { Id } from "@/convex/_generated/dataModel"
 import useGetAttendancePerSession from "@/hooks/useGetAttendancePerSession"
+import { Student } from "@/lib/types";
+import {CourseUnitName} from "@/app/admin/sessions/session-management";
 
 interface SessionDetailDrawerProps {
   open: boolean
@@ -36,7 +38,7 @@ interface SessionDetailDrawerProps {
   students: Student[]
   onStartSession: (sessionId: Id<"attendance_sessions">) => void
   onEndSession: (sessionId: Id<"attendance_sessions">) => void
-  onMarkAttendance?: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
+  onMarkAttendance: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
 }
 
 export function SessionDetailDrawer({
@@ -62,39 +64,48 @@ export function SessionDetailDrawer({
   }
 
   // Get attendance status for a student
-  const getAttendanceStatus = (studentId: string) => {
+  const getAttendanceStatus = (studentId?: Id<"students">) => {
+    if (!studentId) return undefined
     return sessionAttendance.find((r) => r?.studentId === studentId)?.status
   }
   const sessionAttendance = attendanceLoading || attendanceError || !attendance ? [] : attendance
 
+  // Get students enrolled in this course
+  const courseStudents = useMemo(() => {
+    return students.filter((student) => 
+      student.courseUnits.includes(session.courseUnitCode)
+    );
+  }, [students, session.courseUnitCode]);
+
   // Filter students based on search and tab
   const filteredStudents = useMemo(() => {
-    return sessionAttendance.filter((student) => {
+    return courseStudents.filter((student) => {
       const matchesSearch =
-        student?.student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student?.student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+        student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const status = sessionAttendance.find((r) => r?.studentId === student?.student._id)?.status
+      const status = getAttendanceStatus(student._id)
 
       if (activeTab === "all") return matchesSearch
-      if (activeTab === "present") return matchesSearch && status === "early"
+      if (activeTab === "present") return matchesSearch && status === "present"
       if (activeTab === "late") return matchesSearch && status === "late"
-      if (activeTab === "absent") return matchesSearch && status === "late"
+      if (activeTab === "absent") return matchesSearch && status === "absent"
       if (activeTab === "unmarked") return matchesSearch && !status
 
       return matchesSearch
     })
-  }, [students, searchQuery, activeTab, sessionAttendance])
+  }, [courseStudents, searchQuery, activeTab, sessionAttendance])
 
   // Stats
   const stats = useMemo(() => {
-    const present = sessionAttendance.filter((r) => r?.status === "early").length
+    const present = sessionAttendance.filter((r) => r?.status === "present").length
     const late = sessionAttendance.filter((r) => r?.status === "late").length
-//     const absent = sessionAttendance.filter((r) => r?.status === "absent").length
-    const unmarked = students.length - sessionAttendance.length
+    const absent = sessionAttendance.filter((r) => r?.status === "absent").length
+    const unmarked = courseStudents.length - sessionAttendance.length
 
-    return { present, late, unmarked, total: students.length }
-  }, [sessionAttendance, students.length])
+    return { present, late, absent, unmarked, total: courseStudents.length }
+  }, [sessionAttendance, courseStudents.length])
 
   const getStatusBadge = (status: AttendanceSession["status"]) => {
     switch (status) {
@@ -146,7 +157,8 @@ export function SessionDetailDrawer({
         <SheetHeader className="p-6 border-b">
           <div className="flex items-start justify-between">
             <div>
-              <SheetTitle className="text-xl">{session.sessionTitle}</SheetTitle>
+                <CourseUnitName courseCode={session.courseUnitCode} />
+              <SheetTitle className="text-xl">[{session.sessionTitle}]</SheetTitle>
               <SheetDescription className="flex items-center gap-2 mt-1">
                 <Badge variant="outline">{session.courseUnitCode}</Badge>
                 {getStatusBadge(session.status)}
@@ -201,7 +213,7 @@ export function SessionDetailDrawer({
           </div>
           <div className="text-center p-2 rounded-lg bg-red-500/10">
             <UserX className="h-4 w-4 text-red-600 mx-auto mb-1" />
-            <p className="text-lg font-semibold text-red-600">{stats.late}</p>
+            <p className="text-lg font-semibold text-red-600">{stats.absent}</p>
             <p className="text-xs text-muted-foreground">Absent</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-gray-500/10">
@@ -253,27 +265,24 @@ export function SessionDetailDrawer({
                 </div>
               ) : (
                 filteredStudents.map((student) => {
-                  const status = getAttendanceStatus(student?._id)
+                  const status = getAttendanceStatus(student._id)
                   const isOngoing = session.status === "live"
 
                   return (
                     <div
-                      key={student.id}
+                      key={student._id}
                       className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={student.photo || "/placeholder.svg"} />
+                          <AvatarImage src={student.photoDataUrl?.[0] || "/placeholder.svg"} />
                           <AvatarFallback>
-                            {student.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
+                            {student.firstName[0]}{student.lastName[0]}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{student.name}</p>
-                          <p className="text-xs text-muted-foreground">{student.registrationNumber}</p>
+                          <p className="font-medium text-sm">{student.firstName} {student.lastName}</p>
+                          <p className="text-xs text-muted-foreground">{student.studentId}</p>
                         </div>
                       </div>
 
@@ -288,7 +297,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "present" ? "bg-emerald-500 hover:bg-emerald-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session._id, student.id, "present")}
+                              onClick={() => onMarkAttendance(session._id, student._id, "present")}
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -298,7 +307,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "late" ? "bg-amber-500 hover:bg-amber-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session._id, student.id, "late")}
+                              onClick={() => onMarkAttendance(session._id, student._id, "late")}
                             >
                               <AlertCircle className="h-4 w-4" />
                             </Button>
@@ -308,7 +317,7 @@ export function SessionDetailDrawer({
                               className={
                                 status === "absent" ? "bg-red-500 hover:bg-red-600 h-8 w-8 p-0" : "h-8 w-8 p-0"
                               }
-                              onClick={() => onMarkAttendance(session._id, student.id, "absent")}
+                              onClick={() => onMarkAttendance(session._id, student._id, "absent")}
                             >
                               <X className="h-4 w-4" />
                             </Button>

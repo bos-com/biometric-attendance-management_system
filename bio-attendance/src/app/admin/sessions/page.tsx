@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { SessionManagement } from "./session-management"
-import type {Student, AttendanceRecord } from "../dashboard/DashboardPage"
+import type {Student } from "../dashboard/DashboardPage"
 import useCreateSession from "@/hooks/useCreateSession"
 import { AttendanceSession } from "@/lib/types"
 import useGetSessions from "@/hooks/useGetSessions"
@@ -10,27 +10,19 @@ import { Id } from "@/convex/_generated/dataModel"
 import useGetAllCourseUnits from "@/hooks/useGetAllCourseUnits"
 import { useLecturerSession } from "@/hooks/useLecturerSession"
 import UseUpdateSessionStatus from "@/hooks/UseUpdateSessionStatus"
+import useGetStudentsPerLecturer from "@/hooks/useGetStudentsPerLecturer"
+import {AttendanceRecord} from "@/lib/types"
+import useMarkAttendance from "@/hooks/useMarkAttendance"
 
-
-// Demo students
-const demoStudents: Student[] = [
-  { id: "1", name: "John Doe", registrationNumber: "STU001", email: "john@university.edu" },
-  { id: "2", name: "Jane Smith", registrationNumber: "STU002", email: "jane@university.edu" },
-  { id: "3", name: "Michael Johnson", registrationNumber: "STU003", email: "michael@university.edu" },
-  { id: "4", name: "Emily Davis", registrationNumber: "STU004", email: "emily@university.edu" },
-  { id: "5", name: "Robert Wilson", registrationNumber: "STU005", email: "robert@university.edu" },
-  { id: "6", name: "Sarah Brown", registrationNumber: "STU006", email: "sarah@university.edu" },
-  { id: "7", name: "David Lee", registrationNumber: "STU007", email: "david@university.edu" },
-  { id: "8", name: "Lisa Anderson", registrationNumber: "STU008", email: "lisa@university.edu" },
-]
 
 
 export default function SessionsPage() {
         const { session: lecturerSession } = useLecturerSession();
         const { UpdateSessionStatus } = UseUpdateSessionStatus();
+        const { MarkAttendance } = useMarkAttendance();
 const { courseUnits, loading: courseUnitsLoading } = useGetAllCourseUnits();
 const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.filter(cu => cu.lecturerId === lecturerSession?.userId);
-
+const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecturerSession?.userId as Id<"lecturers">);
   const [sessions, setSessions] = useState<AttendanceSession[]>([])
   const { sessions: fetchedSessions, loading, error } = useGetSessions();
   const {CreateSession} = useCreateSession();
@@ -71,42 +63,30 @@ const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.fi
 //     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "closed" } : s)))
   }
 
-//   const handleMarkAttendance = (sessionId: string, studentId: string, status: "present" | "absent" | "late") => {
-//     setSessions((prev) =>
-//       prev.map((s) => {
-//         if (s.id === sessionId) {
-//           const existingIndex = s.attendanceRecords.findIndex((r) => r.studentId === studentId)
-//           const newRecord: AttendanceRecord = {
-//             studentId,
-//             timestamp: new Date(),
-//             status,
-//           }
-
-//           if (existingIndex >= 0) {
-//             const updatedRecords = [...s.attendanceRecords]
-//             updatedRecords[existingIndex] = newRecord
-//             return { ...s, attendanceRecords: updatedRecords }
-//           }
-//           return { ...s, attendanceRecords: [...s.attendanceRecords, newRecord] }
-//         }
-//         return s
-//       }),
-//     )
-//   }
+  const handleMarkAttendance = async (
+    sessionId: Id<"attendance_sessions">, 
+    studentId: Id<"students">, 
+    status: "present" | "absent" | "late"
+  ) => {
+    const result = await MarkAttendance(sessionId, studentId, status);
+    if (!result.success) {
+      console.error("Failed to mark attendance:", result.error);
+    }
+  }
 
   return (
 <div className="min-h-screen bg-green-50/80">
             <SessionManagement
             sessionLoading={loading}
       sessions={sessions || []}
-      students={demoStudents}
+      students={students || []}
       courses={lecturerCourses}
       onCreateSession={handleCreateSession}
       onUpdateSession={handleUpdateSession}
       onDeleteSession={handleDeleteSession}
       onStartSession={handleStartSession}
       onEndSession={handleEndSession}
-//       onMarkAttendance={handleMarkAttendance}
+      onMarkAttendance={handleMarkAttendance}
     />
 </div>
   )

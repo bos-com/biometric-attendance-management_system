@@ -3,7 +3,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 const useGetCourseUnitByLecture = (lecturerId:Id<"lecturers">) => {
-    const courseUnits = useQuery(api.programs.getCourseUnitByLecturer,{ lecturerId }); // Prevent calling hook with an empty ID
+    const courseUnits = useQuery(api.programs.getCourseUnitByLecturer,lecturerId?{ lecturerId }:"skip",); // Prevent calling hook with an empty ID
 //     console.log("Lecturer data:", id);
     return {
         courseUnits: courseUnits,

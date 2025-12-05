@@ -49,3 +49,13 @@ export type CourseUnit = {
   lecturerId: Id<"lecturers">;
   hours_per_session: number;
 };
+
+export type AttendanceRecord = {
+  _id: Id<"attendance_records">;
+  _creationTime: number;
+  courseUnitCode: string;
+  sessionId: Id<"attendance_sessions">;
+  studentId: Id<"students">;
+  confidence: number;
+  status: "present" | "absent" | "late";
+};
