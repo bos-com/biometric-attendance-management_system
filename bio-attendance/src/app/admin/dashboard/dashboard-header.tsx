@@ -51,12 +51,12 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
+            {/* <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
                 3
               </span>
-            </Button>
+            </Button> */}
 
             {/* User menu */}
             <DropdownMenu>
@@ -81,8 +81,10 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
+                  <Link href="/admin/profile" className="flex items-center w-full ">
                   <User className="mr-2 h-4 w-4" />
                   Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

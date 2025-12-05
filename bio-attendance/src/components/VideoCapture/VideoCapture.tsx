@@ -11,7 +11,7 @@ const VideoCapture = () => {
   const [modelsLoaded, setModelsLoaded] = useState(false);
 
   const result = useGetImageEmbeddings();
-  console.log("Embeddings fetched:", result);
+//   console.log("Embeddings fetched:", result);
 
   // Load face-api models
   useEffect(() => {

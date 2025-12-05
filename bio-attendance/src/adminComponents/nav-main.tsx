@@ -27,17 +27,17 @@ export function NavMain() {
         const User = useGetLecturer(session?.userId as Id<"lecturers">);
         const items = [
                 {
-                        title: "Home",
+                        title: "Home & Sessions",
                         icon: HomeIcon as LucideIcon,
-                        link:"/admin",
+                        link:"/admin/sessions",
                 },
                 
               
-                {
-                        title: "Sessions",
-                        icon: PlusCircleIcon as LucideIcon,
-                        link:"/admin/sessions",
-                },
+                // {
+                //         title: "Sessions",
+                //         icon: PlusCircleIcon as LucideIcon,
+                //         link:"/admin/sessions",
+                // },
              
                  {
                         title: "Enrole Students",
