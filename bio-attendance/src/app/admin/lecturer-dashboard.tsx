@@ -1,20 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import type { ClassSession, Student } from "./dashboard/DashboardPage"
 import { DashboardHeader } from "./dashboard/dashboard-header"
 import { DashboardStats } from "./dashboard/dashboard-stats"
 import { SessionsList } from "./dashboard/sessions-list"
 import { CreateSessionModal } from "./dashboard/create-session-modal"
 import { SessionDetailModal } from "./dashboard/session-detail-modal"
+import { AttendanceSession, Student } from "@/lib/types"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface LecturerDashboardProps {
-  sessions: ClassSession[]
+  sessions: AttendanceSession[]
   students: Student[]
-  onCreateSession: (session: Omit<ClassSession, "id" | "attendanceRecords" | "status">) => void
-  onStartSession: (sessionId: string) => void
-  onEndSession: (sessionId: string) => void
-  onMarkAttendance: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
+  onCreateSession: (session: Omit<AttendanceSession, "_id" | "_creationTime" | "sessionId">) => void
+  onStartSession: (sessionId: Id<"attendance_sessions">) => void
+  onEndSession: (sessionId: Id<"attendance_sessions">) => void
+  onMarkAttendance: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
 }
 
 export function LecturerDashboard({
@@ -26,18 +27,14 @@ export function LecturerDashboard({
   onMarkAttendance,
 }: LecturerDashboardProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [selectedSession, setSelectedSession] = useState<ClassSession | null>(null)
-  const [activeTab, setActiveTab] = useState<"all" | "scheduled" | "ongoing" | "completed">("all")
+  const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null)
+  const [activeTab, setActiveTab] = useState<"all" | "scheduled" | "live" | "closed">("all")
 
   // Calculate stats
   const totalSessions = sessions.length
   const totalStudents = students.length
-  const totalAttendanceRecords = sessions.reduce((acc, s) => acc + s.attendanceRecords.length, 0)
-  const presentCount = sessions.reduce(
-    (acc, s) => acc + s.attendanceRecords.filter((r) => r.status === "present").length,
-    0,
-  )
-  const averageAttendance = totalAttendanceRecords > 0 ? Math.round((presentCount / totalAttendanceRecords) * 100) : 0
+  // Note: Attendance records are now in a separate table, these will be fetched per-session
+  const averageAttendance = 0 // TODO: Calculate from attendance query
 
   const filteredSessions = activeTab === "all" ? sessions : sessions.filter((s) => s.status === activeTab)
 
@@ -50,7 +47,7 @@ export function LecturerDashboard({
           totalSessions={totalSessions}
           totalStudents={totalStudents}
           averageAttendance={averageAttendance}
-          ongoingSessions={sessions.filter((s) => s.status === "ongoing").length}
+          ongoingSessions={sessions.filter((s) => s.status === "live").length}
         />
 
         <SessionsList

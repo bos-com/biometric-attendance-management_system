@@ -11,13 +11,14 @@ export type AttendanceSession = {
   _creationTime: number;
   sessionId: string;
   courseUnitCode: string;
-  lecturerId: Id<"lecturers">;
+  lecturerId?: Id<"lecturers">;
   sessionTitle: string;
-  description: string;
+  description?: string;
   startsAt: number;
   endsAt: number;
   location: string;
   status: "scheduled" | "live" | "closed";
+  notes?: string;
   autoStart?: boolean;
   autoClose?: boolean;
 };

@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { SessionManagement } from "./session-management"
-import type {Student } from "../dashboard/DashboardPage"
 import useCreateSession from "@/hooks/useCreateSession"
 import { AttendanceSession } from "@/lib/types"
-import useGetSessions from "@/hooks/useGetSessions"
 import { Id } from "@/convex/_generated/dataModel"
 import useGetAllCourseUnits from "@/hooks/useGetAllCourseUnits"
 import { useLecturerSession } from "@/hooks/useLecturerSession"
@@ -13,6 +11,7 @@ import UseUpdateSessionStatus from "@/hooks/UseUpdateSessionStatus"
 import useGetStudentsPerLecturer from "@/hooks/useGetStudentsPerLecturer"
 import {AttendanceRecord} from "@/lib/types"
 import useMarkAttendance from "@/hooks/useMarkAttendance"
+import useGetSessionsByLecturer from "@/hooks/useGetSessionsByLecturer"
 
 
 
@@ -24,7 +23,7 @@ const { courseUnits, loading: courseUnitsLoading } = useGetAllCourseUnits();
 const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.filter(cu => cu.lecturerId === lecturerSession?.userId);
 const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecturerSession?.userId as Id<"lecturers">);
   const [sessions, setSessions] = useState<AttendanceSession[]>([])
-  const { sessions: fetchedSessions, loading, error } = useGetSessions();
+  const { sessions: fetchedSessions, loading, error } = useGetSessionsByLecturer(lecturerSession?.userId as Id<"lecturers">);
   const {CreateSession} = useCreateSession();
 
   useEffect(()=>{

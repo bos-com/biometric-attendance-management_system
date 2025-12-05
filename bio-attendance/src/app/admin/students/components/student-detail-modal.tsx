@@ -33,15 +33,14 @@ import {
   BarChart,
   Bar,
 } from "recharts"
-import type { StudentDetail, AttendanceEntry } from "../students"
 import { Student } from "@/lib/types";
+import useGetStudentCourseAttendance from "@/hooks/useGetStudentCourseAttendance";
 
 interface StudentDetailModalProps {
   student: Student | null
   courseCode: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  attendanceHistory: AttendanceEntry[]
 }
 
 export function StudentDetailModal({
@@ -49,27 +48,13 @@ export function StudentDetailModal({
   courseCode,
   open,
   onOpenChange,
-  attendanceHistory,
 }: StudentDetailModalProps) {
-  const courseAttendance = useMemo(() => {
-    return attendanceHistory.filter((a) => a.courseCode === courseCode)
-  }, [attendanceHistory, courseCode])
-
-  const stats = useMemo(() => {
-    const total = courseAttendance.length
-    const present = courseAttendance.filter((a) => a.status === "present").length
-    const late = courseAttendance.filter((a) => a.status === "late").length
-    const absent = courseAttendance.filter((a) => a.status === "absent").length
-    const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0
-
-    return { total, present, late, absent, rate }
-  }, [courseAttendance])
-
+        const { records, stats, loading } = useGetStudentCourseAttendance(student?._id,courseCode);
   const weeklyChartData = useMemo(() => {
     const weekMap = new Map<string, { week: string; present: number; late: number; absent: number }>()
 
-    courseAttendance.forEach((entry) => {
-      const weekNum = Math.ceil((new Date().getTime() - entry.sessionDate.getTime()) / (7 * 24 * 60 * 60 * 1000))
+    records.forEach((entry) => {
+      const weekNum = Math.ceil((new Date().getTime() - entry._creationTime) / (7 * 24 * 60 * 60 * 1000))
       const weekLabel = `Week ${13 - weekNum}`
 
       if (!weekMap.has(weekLabel)) {
@@ -87,7 +72,7 @@ export function StudentDetailModal({
       const numB = Number.parseInt(b.week.split(" ")[1])
       return numA - numB
     })
-  }, [courseAttendance])
+  }, [records])
 
   const attendanceRateData = useMemo(() => {
     let cumulativePresent = 0
@@ -133,14 +118,14 @@ export function StudentDetailModal({
               <Badge
                 variant="outline"
                 className={
-                  stats.rate >= 80
+                  stats.attendanceRate >= 80
                     ? "border-emerald-500 text-emerald-600"
-                    : stats.rate >= 60
+                    : stats.attendanceRate >= 60
                       ? "border-amber-500 text-amber-600"
                       : "border-red-500 text-red-600"
                 }
               >
-                {stats.rate}% Attendance
+                {stats.attendanceRate}% Attendance
               </Badge>
             </div>
             <p className="text-muted-foreground mb-4">{student.program}</p>
@@ -172,7 +157,7 @@ export function StudentDetailModal({
               <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
                 <Calendar className="h-5 w-5 text-blue-500" />
               </div>
-              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-2xl font-bold">{stats.totalSessions}</p>
               <p className="text-xs text-muted-foreground">Total Sessions</p>
             </CardContent>
           </Card>
@@ -181,7 +166,7 @@ export function StudentDetailModal({
               <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               </div>
-              <p className="text-2xl font-bold">{stats.present}</p>
+              <p className="text-2xl font-bold">{stats.presentCount}</p>
               <p className="text-xs text-muted-foreground">Present</p>
             </CardContent>
           </Card>
@@ -190,7 +175,7 @@ export function StudentDetailModal({
               <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
                 <Clock className="h-5 w-5 text-amber-500" />
               </div>
-              <p className="text-2xl font-bold">{stats.late}</p>
+              <p className="text-2xl font-bold">{stats.lateCount}</p>
               <p className="text-xs text-muted-foreground">Late</p>
             </CardContent>
           </Card>
@@ -199,7 +184,7 @@ export function StudentDetailModal({
               <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-2">
                 <XCircle className="h-5 w-5 text-red-500" />
               </div>
-              <p className="text-2xl font-bold">{stats.absent}</p>
+              <p className="text-2xl font-bold">{stats.absentCount}</p>
               <p className="text-xs text-muted-foreground">Absent</p>
             </CardContent>
           </Card>
@@ -291,11 +276,11 @@ export function StudentDetailModal({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {courseAttendance.length === 0 ? (
+                  {records.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">No attendance records yet</p>
                   ) : (
-                    courseAttendance
-                      .sort((a, b) => b.sessionDate.getTime() - a.sessionDate.getTime())
+                    records
+                      .sort((a, b) => (b.session?._creationTime ?? 0) - (a.session?._creationTime ?? 0))
                       .map((entry, idx) => (
                         <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                           <div className="flex items-center gap-3">
@@ -318,14 +303,14 @@ export function StudentDetailModal({
                             </div>
                             <div>
                               <p className="text-sm font-medium">
-                                {entry.sessionDate.toLocaleDateString("en-US", {
+                                {entry.session?._creationTime && new Date(entry.session._creationTime).toLocaleDateString("en-US", {
                                   weekday: "long",
                                   year: "numeric",
                                   month: "short",
                                   day: "numeric",
                                 })}
                               </p>
-                              <p className="text-xs text-muted-foreground">{entry.courseCode}</p>
+                              <p className="text-xs text-muted-foreground">{entry.session?.courseUnitCode}</p>
                             </div>
                           </div>
                           <Badge
