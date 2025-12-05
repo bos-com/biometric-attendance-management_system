@@ -36,7 +36,7 @@ export const recordRecognition = mutation({
       courseUnitCode: session.courseUnitCode,
       studentId: args.studentDocId,
       confidence: args.confidence,
-      status: args.confidence >= 0.8 ? "early" : "late",
+      status: args.confidence >= 0.8 ? "present" : "late",
     });
   },
 });
@@ -119,5 +119,67 @@ export const markAttendance = mutation({
       confidence: 1, // Manual marking = 100% confidence
       status: args.status,
     });
+  },
+});
+
+// Get attendance records for a student in a specific course unit
+export const getStudentCourseAttendance = query({
+  args: {
+    studentId: v.id("students"),
+    courseUnitCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get all sessions for this course unit
+    const sessions = await ctx.db
+      .query("attendance_sessions")
+      .withIndex("by_courseUnitCode", (q) => q.eq("courseUnitCode", args.courseUnitCode))
+      .collect();
+
+    // Get attendance records for this student
+    const attendanceRecords = await ctx.db
+      .query("attendance_records")
+      .withIndex("by_studentId", (q) => q.eq("studentId", args.studentId))
+      .collect();
+
+    // Filter to only records for this course unit
+    const courseAttendance = attendanceRecords.filter(
+      (record) => record.courseUnitCode === args.courseUnitCode
+    );
+
+    // Enrich with session details
+    const enrichedRecords = await Promise.all(
+      courseAttendance.map(async (record) => {
+        const session = await ctx.db.get(record.sessionId);
+        return {
+          ...record,
+          session,
+        };
+      })
+    );
+
+    // Calculate stats
+    const totalSessions = sessions.filter((s) => s.status === "closed").length;
+    const attendedSessions = courseAttendance.filter(
+      (r) => r.status === "present" || r.status === "late"
+    ).length;
+    const presentCount = courseAttendance.filter((r) => r.status === "present").length;
+    const lateCount = courseAttendance.filter((r) => r.status === "late").length;
+    const absentCount = courseAttendance.filter((r) => r.status === "absent").length;
+    const attendanceRate = totalSessions > 0 
+      ? Math.round((attendedSessions / totalSessions) * 100) 
+      : 0;
+
+    return {
+      records: enrichedRecords,
+      stats: {
+        totalSessions,
+        attendedSessions,
+        presentCount,
+        lateCount,
+        absentCount,
+        missedSessions: totalSessions - attendedSessions,
+        attendanceRate,
+      },
+    };
   },
 });

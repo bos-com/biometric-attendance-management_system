@@ -118,6 +118,22 @@ export const getstudentsPerLecturer = query({
       student.courseUnits.some((code) => courseUnitsCodes.has(code))
     );
 
-    return matchingStudents;
+    // Enrich students with image URLs
+    const studentsWithImages = await Promise.all(
+      matchingStudents.map(async (student) => {
+        const imageUrls = student.photoStorageId
+          ? await Promise.all(
+              student.photoStorageId.map((imageId) => ctx.storage.getUrl(imageId))
+            )
+          : [];
+        
+        return {
+          ...student,
+          photoDataUrl: imageUrls.filter((url): url is string => url !== null),
+        };
+      })
+    );
+
+    return studentsWithImages;
   },
 });
