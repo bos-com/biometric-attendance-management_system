@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import {
   Dialog,
   DialogContent,
@@ -63,8 +63,46 @@ export function CreateSessionModal({ open, onOpenChange,onCreateSession }: Creat
         setLecturer(session);
         console.log("Lecturer session updated: ", session);
   }, [formData,session]);
+
+  // Validation logic
+  const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+  
+  const validationErrors = useMemo(() => {
+    const errors: { date?: string; endTime?: string } = {};
+    
+    // Check if date is in the past
+    if (formData.date && formData.date < today) {
+      errors.date = "Cannot schedule a session in the past";
+    }
+    
+    // Check if end time is before or equal to start time
+    if (formData.startTime && formData.endTime && formData.endTime <= formData.startTime) {
+      errors.endTime = "End time must be after start time";
+    }
+
+    // Check if date is today and start time is in the past
+    if (formData.date === today && formData.startTime) {
+      const now = new Date();
+      const [hours, minutes] = formData.startTime.split(':').map(Number);
+      const startDateTime = new Date();
+      startDateTime.setHours(hours, minutes, 0, 0);
+      if (startDateTime < now) {
+        errors.date = "Cannot schedule a session with a start time in the past";
+      }
+    }
+    
+    return errors;
+  }, [formData.date, formData.startTime, formData.endTime, today]);
+
+  const hasValidationErrors = Object.keys(validationErrors).length > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (hasValidationErrors) {
+      return;
+    }
+    
     setIsSubmitting(true)
 
     // Simulate API call
@@ -180,10 +218,14 @@ export function CreateSessionModal({ open, onOpenChange,onCreateSession }: Creat
                 type="date"
                 value={formData.date}
                 onChange={handleChange}
-                className="pl-10"
+                min={today}
+                className={`pl-10 ${validationErrors.date ? 'border-red-500' : ''}`}
                 required
               />
             </div>
+            {validationErrors.date && (
+              <p className="text-sm text-red-500">{validationErrors.date}</p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -213,10 +255,13 @@ export function CreateSessionModal({ open, onOpenChange,onCreateSession }: Creat
                   type="time"
                   value={formData.endTime}
                   onChange={handleChange}
-                  className="pl-10"
+                  className={`pl-10 ${validationErrors.endTime ? 'border-red-500' : ''}`}
                   required
                 />
               </div>
+              {validationErrors.endTime && (
+                <p className="text-sm text-red-500">{validationErrors.endTime}</p>
+              )}
             </div>
           </div>
 
@@ -252,7 +297,7 @@ export function CreateSessionModal({ open, onOpenChange,onCreateSession }: Creat
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.courseCode}>
+            <Button type="submit" disabled={isSubmitting || !formData.courseCode || hasValidationErrors}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

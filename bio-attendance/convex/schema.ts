@@ -78,7 +78,8 @@ export default defineSchema({
         studentId: v.id("students"),
         confidence: v.number(),
         status: v.union(
-                v.literal("early"),
+                v.literal("present"),
+                v.literal("absent"),
                 v.literal("late")),
   })
   .index("by_courseUnitCode", ["courseUnitCode"])
