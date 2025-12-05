@@ -1,21 +1,25 @@
 "use client"
 
-import type { ClassSession, Student } from "./DashboardPage"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/adminComponents/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/adminComponents/ui/badge"
 import { Avatar, AvatarFallback } from "@/adminComponents/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Calendar, Clock, MapPin, Users, Play, Square, Check, X, AlertCircle } from "lucide-react"
+import { AttendanceSession, Student } from "@/lib/types"
+import { Dateformat } from "@/lib/utils"
+import { Id } from "@/convex/_generated/dataModel"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface SessionDetailModalProps {
-  session: ClassSession | null
+  session: AttendanceSession | null
   students: Student[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  onMarkAttendance: (sessionId: string, studentId: string, status: "present" | "absent" | "late") => void
-  onStartSession: (sessionId: string) => void
-  onEndSession: (sessionId: string) => void
+  onMarkAttendance: (sessionId: Id<"attendance_sessions">, studentId: Id<"students">, status: "present" | "absent" | "late") => void
+  onStartSession: (sessionId: Id<"attendance_sessions">) => void
+  onEndSession: (sessionId: Id<"attendance_sessions">) => void
 }
 
 export function SessionDetailModal({
@@ -27,6 +31,12 @@ export function SessionDetailModal({
   onStartSession,
   onEndSession,
 }: SessionDetailModalProps) {
+  // Fetch attendance records for this session
+  const attendanceRecords = useQuery(
+    api.attendance.forSession,
+    session ? { sessionId: session._id } : "skip"
+  );
+
   if (!session) return null
 
   const formatDate = (date: Date) => {
@@ -38,8 +48,8 @@ export function SessionDetailModal({
     }).format(date)
   }
 
-  const getStudentAttendance = (studentId: string) => {
-    return session.attendanceRecords.find((r) => r.studentId === studentId)?.status
+  const getStudentAttendance = (studentId: Id<"students">) => {
+    return attendanceRecords?.find((r) => r && r.studentId === studentId)?.status
   }
 
   const getStatusColor = (status?: "present" | "absent" | "late") => {
@@ -55,9 +65,10 @@ export function SessionDetailModal({
     }
   }
 
-  const presentCount = session.attendanceRecords.filter((r) => r.status === "present").length
-  const lateCount = session.attendanceRecords.filter((r) => r.status === "late").length
-  const absentCount = session.attendanceRecords.filter((r) => r.status === "absent").length
+  const records = attendanceRecords ?? []
+  const presentCount = records.filter((r) => r?.status === "present").length
+  const lateCount = records.filter((r) => r?.status === "late").length
+  const absentCount = records.filter((r) => r?.status === "absent").length
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,12 +76,12 @@ export function SessionDetailModal({
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div>
-              <DialogTitle className="text-xl">{session.courseName}</DialogTitle>
+              <DialogTitle className="text-xl">{session.sessionTitle}</DialogTitle>
               <DialogDescription className="flex items-center gap-2 mt-1">
-                <Badge variant="outline">{session.courseCode}</Badge>
+                <Badge variant="outline">{session.courseUnitCode}</Badge>
                 {session.status === "scheduled" && <Badge variant="secondary">Scheduled</Badge>}
-                {session.status === "ongoing" && <Badge className="bg-success text-success-foreground">Ongoing</Badge>}
-                {session.status === "completed" && <Badge variant="outline">Completed</Badge>}
+                {session.status === "live" && <Badge className="bg-success text-success-foreground">Ongoing</Badge>}
+                {session.status === "closed" && <Badge variant="outline">Completed</Badge>}
               </DialogDescription>
             </div>
           </div>
@@ -80,12 +91,12 @@ export function SessionDetailModal({
         <div className="grid gap-3 sm:grid-cols-3 py-4 border-y">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span>{formatDate(session.date)}</span>
+            <span>{Dateformat(session._creationTime)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span>
-              {session.startTime} - {session.endTime}
+              {session.startsAt} - {session.endsAt}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -111,16 +122,16 @@ export function SessionDetailModal({
         </div>
 
         {/* Session Controls */}
-        {session.status !== "completed" && (
+        {session.status !== "closed" && (
           <div className="flex gap-2">
             {session.status === "scheduled" && (
-              <Button onClick={() => onStartSession(session.id)} className="flex-1">
+              <Button onClick={() => onStartSession(session._id)} className="flex-1">
                 <Play className="mr-2 h-4 w-4" />
                 Start Session
               </Button>
             )}
-            {session.status === "ongoing" && (
-              <Button variant="destructive" onClick={() => onEndSession(session.id)} className="flex-1">
+            {session.status === "live" && (
+              <Button variant="destructive" onClick={() => onEndSession(session._id)} className="flex-1">
                 <Square className="mr-2 h-4 w-4" />
                 End Session
               </Button>
@@ -138,31 +149,31 @@ export function SessionDetailModal({
           <ScrollArea className="h-[250px] rounded-lg border">
             <div className="divide-y">
               {students.map((student) => {
-                const attendance = getStudentAttendance(student.id)
+                const attendance = getStudentAttendance(student._id)
                 return (
-                  <div key={student.id} className="flex items-center justify-between p-3 hover:bg-muted/50">
+                  <div key={student._id} className="flex items-center justify-between p-3 hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {student.name
+                          {student.firstName + " " + student.lastName
                             .split(" ")
                             .map((n) => n[0])
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium leading-none mb-1">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">{student.registrationNumber}</p>
+                        <p className="text-sm font-medium leading-none mb-1">{student.firstName}</p>
+                        <p className="text-xs text-muted-foreground">{student.studentId}</p>
                       </div>
                     </div>
 
-                    {session.status === "ongoing" ? (
+                    {session.status === "live" ? (
                       <div className="flex items-center gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
                           className={`h-8 w-8 ${attendance === "present" ? "bg-success/20 text-success" : ""}`}
-                          onClick={() => onMarkAttendance(session.id, student.id, "present")}
+                          onClick={() => onMarkAttendance(session._id, student._id, "present")}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -170,7 +181,7 @@ export function SessionDetailModal({
                           size="icon"
                           variant="ghost"
                           className={`h-8 w-8 ${attendance === "late" ? "bg-warning/20 text-warning-foreground" : ""}`}
-                          onClick={() => onMarkAttendance(session.id, student.id, "late")}
+                          onClick={() => onMarkAttendance(session._id, student._id, "late")}
                         >
                           <AlertCircle className="h-4 w-4" />
                         </Button>
@@ -178,7 +189,7 @@ export function SessionDetailModal({
                           size="icon"
                           variant="ghost"
                           className={`h-8 w-8 ${attendance === "absent" ? "bg-destructive/20 text-destructive" : ""}`}
-                          onClick={() => onMarkAttendance(session.id, student.id, "absent")}
+                          onClick={() => onMarkAttendance(session._id, student._id, "absent")}
                         >
                           <X className="h-4 w-4" />
                         </Button>

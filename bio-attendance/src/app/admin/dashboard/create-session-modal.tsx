@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import type { ClassSession } from "./DashboardPage"
+import { AttendanceSession } from "@/lib/types"
 import {
   Dialog,
   DialogContent,
@@ -16,17 +16,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CalendarDays, BookOpen, Clock, MapPin } from "lucide-react"
+import { useLecturerSession } from "@/hooks/useLecturerSession"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface CreateSessionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreateSession: (session: Omit<ClassSession, "id" | "attendanceRecords" | "status">) => void
+  onCreateSession: (session: Omit<AttendanceSession, "_id" | "_creationTime" | "sessionId">) => void
 }
 
 export function CreateSessionModal({ open, onOpenChange, onCreateSession }: CreateSessionModalProps) {
+  const { session: lecturerSession } = useLecturerSession();
   const [formData, setFormData] = useState({
-    courseCode: "",
-    courseName: "",
+    courseUnitCode: "",
+    sessionTitle: "",
+    description: "",
     date: "",
     startTime: "",
     endTime: "",
@@ -38,17 +42,25 @@ export function CreateSessionModal({ open, onOpenChange, onCreateSession }: Crea
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // Convert date and time to timestamps
+    const startDate = new Date(`${formData.date}T${formData.startTime}`)
+    const endDate = new Date(`${formData.date}T${formData.endTime}`)
 
     onCreateSession({
-      ...formData,
-      date: new Date(formData.date),
+      courseUnitCode: formData.courseUnitCode,
+      sessionTitle: formData.sessionTitle,
+      description: formData.description,
+      startsAt: startDate.getTime(),
+      endsAt: endDate.getTime(),
+      location: formData.location,
+      status: "scheduled",
+      lecturerId: lecturerSession?.userId as Id<"lecturers">,
     })
 
     setFormData({
-      courseCode: "",
-      courseName: "",
+      courseUnitCode: "",
+      sessionTitle: "",
+      description: "",
       date: "",
       startTime: "",
       endTime: "",
@@ -74,14 +86,14 @@ export function CreateSessionModal({ open, onOpenChange, onCreateSession }: Crea
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="courseCode">Course Code</Label>
+              <Label htmlFor="courseUnitCode">Course Code</Label>
               <div className="relative">
                 <BookOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="courseCode"
-                  name="courseCode"
+                  id="courseUnitCode"
+                  name="courseUnitCode"
                   placeholder="CS101"
-                  value={formData.courseCode}
+                  value={formData.courseUnitCode}
                   onChange={handleChange}
                   className="pl-10"
                   required
@@ -90,16 +102,27 @@ export function CreateSessionModal({ open, onOpenChange, onCreateSession }: Crea
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="courseName">Course Name</Label>
+              <Label htmlFor="sessionTitle">Session Title</Label>
               <Input
-                id="courseName"
-                name="courseName"
+                id="sessionTitle"
+                name="sessionTitle"
                 placeholder="Introduction to Programming"
-                value={formData.courseName}
+                value={formData.sessionTitle}
                 onChange={handleChange}
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              name="description"
+              placeholder="Session description"
+              value={formData.description}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="space-y-2">

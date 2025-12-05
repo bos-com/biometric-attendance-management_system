@@ -1,7 +1,5 @@
 "use client"
-
 import { useState, useMemo } from "react"
-import type { ClassSession, } from "../dashboard/DashboardPage"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/adminComponents/ui/sheet"
 import { Button } from "@/adminComponents/ui/button"
 import { Badge } from "@/adminComponents/ui/badge"

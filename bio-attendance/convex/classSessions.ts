@@ -167,4 +167,14 @@ export const getSessionById = query({
         }
 });
 
-
+export const getSessionsByLecturer = query({
+        args: {lecturerId: v.id("lecturers")},
+        handler: async (ctx, args) => {
+                const sessions = await ctx.db
+        .query("attendance_sessions")
+        .withIndex("by_lecturer", (q) => q.eq("lecturerId", args.lecturerId))
+        .order("desc")
+        .collect();
+                return sessions;
+        }
+});
