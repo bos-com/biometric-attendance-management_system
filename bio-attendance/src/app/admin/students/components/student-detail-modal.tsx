@@ -34,9 +34,10 @@ import {
   Bar,
 } from "recharts"
 import type { StudentDetail, AttendanceEntry } from "../students"
+import { Student } from "@/lib/types";
 
 interface StudentDetailModalProps {
-  student: StudentDetail | null
+  student: Student | null
   courseCode: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -121,14 +122,14 @@ export function StudentDetailModal({
         {/* Student Header */}
         <div className="flex flex-col sm:flex-row items-start gap-6 pb-6 border-b">
           <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-            <AvatarImage src={student.photo || "/placeholder.svg"} alt={student.name} />
+            <AvatarImage src={student.photoDataUrl?.[0] || "/placeholder.svg"} alt={student.firstName + " " + student.lastName} />
             <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
-              {student.photo ? <User className="h-10 w-10" /> : getInitials(student.name)}
+              {student.photoDataUrl?.[0] ? <User className="h-10 w-10" /> : getInitials(student.firstName + " " + student.lastName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold">{student.name}</h2>
+              <h2 className="text-2xl font-bold">{student.firstName + " " + student.lastName}</h2>
               <Badge
                 variant="outline"
                 className={
@@ -146,7 +147,7 @@ export function StudentDetailModal({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                <span>{student.registrationNumber}</span>
+                <span>{student.studentId}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
@@ -154,11 +155,11 @@ export function StudentDetailModal({
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{student.phone}</span>
+                {/* <span>{student.phone}</span> */}
               </div>
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
-                <span>Year {student.yearOfStudy}</span>
+                {/* <span>Year {student.yearOfStudy}</span> */}
               </div>
             </div>
           </div>

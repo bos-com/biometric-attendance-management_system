@@ -4,10 +4,10 @@ import { User, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/adminComponents/ui/avatar"
 import { Badge } from "@/adminComponents/ui/badge"
-import type { StudentDetail } from "../students"
+import { Student } from "@/lib/types";
 
 interface StudentCardProps {
-  student: StudentDetail
+  student: Student
   attendanceRate: number
   onClick: () => void
 }
@@ -52,14 +52,14 @@ export function StudentCard({ student, attendanceRate, onClick }: StudentCardPro
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
           <Avatar className="h-14 w-14 border-2 border-background shadow-sm">
-            <AvatarImage src={student.photo || "/placeholder.svg"} alt={student.name} />
+            <AvatarImage src={student.photoDataUrl?.[0] || "/placeholder.svg"} alt={student.firstName} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {student.photo ? <User className="h-6 w-6" /> : getInitials(student.name)}
+              {student.photoDataUrl?.[0] ? <User className="h-6 w-6" /> : getInitials(student.firstName + " " + student.lastName    )}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{student.name}</h3>
-            <p className="text-sm text-muted-foreground">{student.registrationNumber}</p>
+            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{student.firstName} {student.lastName}</h3>
+            <p className="text-sm text-muted-foreground">{student.studentId}</p>
             <p className="text-xs text-muted-foreground mt-1 truncate">{student.program}</p>
           </div>
         </div>

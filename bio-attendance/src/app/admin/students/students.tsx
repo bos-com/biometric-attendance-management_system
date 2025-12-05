@@ -1,8 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CourseStudentsView } from "./components/course-students-view"
-
+import useGetStudentsPerLecturer from "@/hooks/useGetStudentsPerLecturer"
+import { useLecturerSession } from "@/hooks/useLecturerSession"
+import { Id } from "@/convex/_generated/dataModel"
+import { Student } from "@/lib/types";
+import useGetCourseUnitByLecture from "@/hooks/useGetCourseUnitByLecture";
+import Loader from "@/components/Loader/loader"
 // Types
 export interface CourseUnit {
   id: string
@@ -219,30 +224,50 @@ const generateAttendanceHistory = (studentId: string): AttendanceEntry[] => {
 }
 
 export default function CourseStudentsPage() {
-  const [courseUnits] = useState<CourseUnit[]>(demoCourseUnits)
-  const [students] = useState<StudentDetail[]>(demoStudents)
-  const [selectedCourseId, setSelectedCourseId] = useState<string>(demoCourseUnits[0].id)
+       
+//   const [selectedCourseId, setSelectedCourseId] = useState<string>(demoCourseUnits[0].id)
+  const { session } = useLecturerSession()
+ const {courseUnits: lecturerCourseUnits, loading: coursesLoading, error: coursesError} = useGetCourseUnitByLecture(session?.userId as Id<"lecturers">)
+  const { students: lecturerStudents, loading, error } = useGetStudentsPerLecturer(session?.userId as Id<"lecturers">)
 
-  const getStudentsForCourse = (courseId: string): StudentDetail[] => {
-    const course = courseUnits.find((c) => c.id === courseId)
-    if (!course) return []
-    return students.filter((s) => course.enrolledStudents.includes(s.id))
+    const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null)
+
+  // Set default selection when courses load
+  useEffect(() => {
+    if (lecturerCourseUnits?.length && !selectedCourseCode) {
+        console.log("Setting default selected course code:", lecturerCourseUnits[0].code);
+      setSelectedCourseCode(lecturerCourseUnits[0].code)
+    }
+
+  }, [lecturerCourseUnits, selectedCourseCode])
+//   console.log("Selected Course Code:", selectedCourseCode);
+
+    if (loading || coursesLoading || lecturerStudents === undefined || lecturerCourseUnits === undefined) {
+    return <Loader />
+  }
+
+  if (error) {
+    return <div>Error loading students: {error}</div>
+  }
+
+  const selectedCourse = lecturerCourseUnits?.find((c) => c.code === selectedCourseCode)
+
+  // Guard against no selected course
+  if (!selectedCourse) {
+    return <div>Loading course...</div>
   }
 
   const getAttendanceForStudent = (studentId: string): AttendanceEntry[] => {
     return generateAttendanceHistory(studentId)
   }
 
-  const selectedCourse = courseUnits.find((c) => c.id === selectedCourseId)
-  const courseStudents = getStudentsForCourse(selectedCourseId)
-
   return (
-    <div className="w-full mt-[10%]" >
+    <div className="w-full h-full" >
         <CourseStudentsView
-      courseUnits={courseUnits}
-      selectedCourse={selectedCourse!}
-      students={courseStudents}
-      onCourseChange={setSelectedCourseId}
+      courseUnits={lecturerCourseUnits}
+      selectedCourse={selectedCourse}
+      students={lecturerStudents}
+      onCourseChange={setSelectedCourseCode}
       getAttendanceForStudent={getAttendanceForStudent}
     />
     </div>
