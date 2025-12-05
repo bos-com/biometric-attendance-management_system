@@ -18,16 +18,19 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/adminComponents/ui/dropdown-menu"
 import { Badge } from "@/adminComponents/ui/badge"
-import type { CourseUnit, StudentDetail, AttendanceEntry } from "../students"
+import type { StudentDetail, AttendanceEntry } from "../students"
+import { CourseUnit } from "@/lib/types";
+import { Student } from "@/lib/types";
 import { StudentCard } from "./student-card"
 import { StudentDetailModal } from "./student-detail-modal"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface CourseStudentsViewProps {
-  courseUnits: CourseUnit[]
+  courseUnits: Partial<CourseUnit>[]
   selectedCourse: CourseUnit
-  students: StudentDetail[]
-  onCourseChange: (courseId: string) => void
-  getAttendanceForStudent: (studentId: string) => AttendanceEntry[]
+  students: Student[]
+  onCourseChange: (courseCode: string|null) => void
+  getAttendanceForStudent: (studentId: Id<"students">) => AttendanceEntry[]
 }
 
 export function CourseStudentsView({
@@ -38,23 +41,38 @@ export function CourseStudentsView({
   getAttendanceForStudent,
 }: CourseStudentsViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [sortBy, setSortBy] = useState<"name" | "regNo" | "attendance">("name")
+//   console.log("Selected Course in View:", selectedCourse);
 
   const filteredStudents = students
-    .filter(
-      (s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
+    .filter((s) => {
+      // First, filter by selected course - student must be enrolled in this course
+      const isEnrolledInCourse = s.courseUnits.includes(selectedCourse.code);
+      if (!isEnrolledInCourse) return false;
+
+      // Then, apply search filter if there's a search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          s.firstName.toLowerCase().includes(query) ||
+          s.lastName.toLowerCase().includes(query) ||
+          s.middleName?.toLowerCase().includes(query) ||
+          s.studentId.toLowerCase().includes(query)
+        );
+      }
+
+      return true;
+    })
     .sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name)
-      if (sortBy === "regNo") return a.registrationNumber.localeCompare(b.registrationNumber)
+      if (sortBy === "name") return a.firstName.localeCompare(b.firstName)
+
+      if (sortBy === "regNo") return a.studentId.localeCompare(b.studentId)
       // Sort by attendance rate (we'd calculate this from actual data)
       return 0
     })
 
-  const calculateAttendanceRate = (studentId: string): number => {
+  const calculateAttendanceRate = (studentId: Id<"students">): number => {
     const attendance = getAttendanceForStudent(studentId)
     const courseAttendance = attendance.filter((a) => a.courseCode === selectedCourse.code)
     if (courseAttendance.length === 0) return 0
@@ -69,11 +87,6 @@ export function CourseStudentsView({
         <div className="container mx-auto px-4 py-4 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
               <div className="flex items-center gap-3">
                 <div>
                   <h1 className="text-xl font-semibold">Enrolled Students</h1>
@@ -123,8 +136,8 @@ export function CourseStudentsView({
                 <DropdownMenuContent className="w-80">
                   {courseUnits.map((course) => (
                     <DropdownMenuItem
-                      key={course.id}
-                      onClick={() => onCourseChange(course.id)}
+                      key={course._id}
+                      onClick={() => onCourseChange(course.code ?? null)}
                       className="flex items-center gap-3 py-3"
                     >
                       <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
@@ -135,7 +148,7 @@ export function CourseStudentsView({
                         <p className="text-sm text-muted-foreground">{course.name}</p>
                       </div>
                       <Badge variant="secondary" className="ml-auto">
-                        {course.enrolledStudents.length}
+                        {/* {course.enrolledStudents.length} */}
                       </Badge>
                     </DropdownMenuItem>
                   ))}
@@ -166,7 +179,7 @@ export function CourseStudentsView({
                   <BookOpen className="h-6 w-6 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{selectedCourse.creditUnits}</p>
+                  <p className="text-2xl font-bold">{selectedCourse.hours_per_session}</p>
                   <p className="text-sm text-muted-foreground">Credit Units</p>
                 </div>
               </div>
@@ -217,9 +230,9 @@ export function CourseStudentsView({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredStudents.map((student) => (
               <StudentCard
-                key={student.id}
+                key={student._id}
                 student={student}
-                attendanceRate={calculateAttendanceRate(student.id)}
+                attendanceRate={calculateAttendanceRate(student._id)}
                 onClick={() => setSelectedStudent(student)}
               />
             ))}
@@ -233,7 +246,7 @@ export function CourseStudentsView({
         courseCode={selectedCourse.code}
         open={!!selectedStudent}
         onOpenChange={(open) => !open && setSelectedStudent(null)}
-        attendanceHistory={selectedStudent ? getAttendanceForStudent(selectedStudent.id) : []}
+        attendanceHistory={selectedStudent ? getAttendanceForStudent(selectedStudent._id) : []}
       />
     </div>
   )
