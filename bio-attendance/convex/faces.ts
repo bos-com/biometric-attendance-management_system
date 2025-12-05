@@ -141,7 +141,7 @@ export const replaceEmbedding = mutation({
                         }),
                 );
                 const filteredEmbeddings = embeddingsWithStudent.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-                console.log("Filtered Embeddings:", filteredEmbeddings);
+                // console.log("Filtered Embeddings:", filteredEmbeddings);
                 return filteredEmbeddings;
         },
         });

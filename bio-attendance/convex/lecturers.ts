@@ -165,3 +165,62 @@ export const signOut = mutation({
     }
   },
 });
+
+export const updateProfile = mutation({
+  args: {
+    lecturerId: v.id("lecturers"),
+    fullName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    staffId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const lecturer = await ctx.db.get(args.lecturerId);
+    if (!lecturer) {
+      throw new ConvexError("Lecturer not found");
+    }
+
+    // Check if email is being changed and if it's already taken
+    if (args.email && args.email !== lecturer.email) {
+      const existing = await ctx.db
+        .query("lecturers")
+        .withIndex("by_email", (q) => q.eq("email", args.email!))
+        .unique();
+      if (existing) {
+        throw new ConvexError("Email already in use");
+      }
+    }
+
+    const updates: Partial<{
+      fullName: string;
+      email: string;
+      staffId: string;
+    }> = {};
+
+    if (args.fullName) updates.fullName = args.fullName;
+    if (args.email) updates.email = args.email;
+    if (args.staffId) updates.staffId = args.staffId;
+
+    await ctx.db.patch(args.lecturerId, updates);
+
+    return { success: true, message: "Profile updated successfully" };
+  },
+});
+
+export const changePassword = mutation({
+  args: {
+    lecturerId: v.id("lecturers"),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const lecturer = await ctx.db.get(args.lecturerId);
+    if (!lecturer) {
+      throw new ConvexError("Lecturer not found");
+    }
+
+    await ctx.db.patch(args.lecturerId, {
+      passwordHash: args.newPassword,
+    });
+
+    return { success: true, message: "Password changed successfully" };
+  },
+});

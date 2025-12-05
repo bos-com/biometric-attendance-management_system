@@ -4,7 +4,7 @@ import {
         // Rocket,
          type LucideIcon } from "lucide-react"
 import { IoBagCheckOutline  } from "react-icons/io5";
-import {HomeIcon,SquarePlus,Rows4,Edit2Icon,PlusCircleIcon,
+import {HomeIcon,SquarePlus,Rows4,Edit2Icon,PlusCircleIcon,UserCircle,
         // Users,HandCoins,SquareStack,Newspaper,User
 } from "lucide-react"
 import {
@@ -27,17 +27,17 @@ export function NavMain() {
         const User = useGetLecturer(session?.userId as Id<"lecturers">);
         const items = [
                 {
-                        title: "Home",
+                        title: "Home & Sessions",
                         icon: HomeIcon as LucideIcon,
-                        link:"/admin",
+                        link:"/admin/sessions",
                 },
                 
               
-                {
-                        title: "Sessions",
-                        icon: PlusCircleIcon as LucideIcon,
-                        link:"/admin/sessions",
-                },
+                // {
+                //         title: "Sessions",
+                //         icon: PlusCircleIcon as LucideIcon,
+                //         link:"/admin/sessions",
+                // },
              
                  {
                         title: "Enrole Students",
@@ -61,6 +61,11 @@ export function NavMain() {
                         title: "Attendance Module",
                         icon: Edit2Icon      as LucideIcon,
                         link:"/admin/attendance",
+                },
+                {
+                        title: "My Profile",
+                        icon: UserCircle as LucideIcon,
+                        link:"/admin/profile",
                 },
                 
                 

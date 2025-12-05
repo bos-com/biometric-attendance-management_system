@@ -34,6 +34,8 @@ import {
   CalendarCheck,
   CalendarX,
   Filter,
+  TrendingUp,
+  BookOpen,
 } from "lucide-react"
 import { CreateSessionModal } from "./create-session-modal"
 import { EditSessionModal } from "./edit-session-modal"
@@ -46,6 +48,7 @@ import Loader from "@/components/Loader/loader"
 import useGetCourseUnitByCode from "@/hooks/useGetCourseUnitByCode"
 import { Student } from "@/lib/types";
 import useGetAttendancePerSession from "@/hooks/useGetAttendancePerSession"
+import useGetCourseUnitAttendanceStats from "@/hooks/useGetCourseUnitAttendanceStats"
 
 // Separate component to safely use hook inside a loop
 export function CourseUnitName({ courseCode }: { courseCode: string }) {
@@ -63,6 +66,56 @@ function SessionAttendanceCount({ sessionId }: { sessionId: Id<"attendance_sessi
   const presentCount = attendance?.filter((r) => r?.status === "present" || r?.status === "late").length ?? 0;
   
   return <span>{presentCount} attended</span>;
+}
+
+// Component to display course unit average attendance
+function CourseUnitAttendanceCard({ courseCode, courseName }: { courseCode: string; courseName: string }) {
+  const { stats, loading } = useGetCourseUnitAttendanceStats(courseCode);
+  
+  const getAttendanceColor = (rate: number) => {
+    if (rate >= 80) return "text-green-600 bg-green-100";
+    if (rate >= 60) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
+  };
+
+  if (loading) {
+    return (
+      <Card className="min-w-[200px]">
+        <CardContent className="p-4">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="min-w-[200px] hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground font-medium truncate">{courseCode}</p>
+            <p className="text-sm font-semibold truncate" title={courseName}>{courseName}</p>
+          </div>
+          <div className={`flex items-center justify-center h-10 w-10 rounded-full ${getAttendanceColor(stats?.averageAttendanceRate ?? 0)}`}>
+            <span className="text-sm font-bold">{stats?.averageAttendanceRate ?? 0}%</span>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {stats?.totalSessions ?? 0} sessions
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            {stats?.totalStudents ?? 0} students
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 interface Course {
@@ -271,6 +324,32 @@ export function SessionManagement({
             </CardContent>
           </Card>
         </div>
+
+        {/* Course Unit Attendance Overview */}
+        {courses.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Course Unit Attendance Overview</CardTitle>
+              </div>
+              <CardDescription>
+                Average attendance rate per course unit (based on completed sessions)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {courses.map((course) => (
+                  <CourseUnitAttendanceCard
+                    key={course.code}
+                    courseCode={course.code}
+                    courseName={course.name}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters and Search */}
         <Card>

@@ -12,6 +12,7 @@ import useGetStudentsPerLecturer from "@/hooks/useGetStudentsPerLecturer"
 import {AttendanceRecord} from "@/lib/types"
 import useMarkAttendance from "@/hooks/useMarkAttendance"
 import useGetSessionsByLecturer from "@/hooks/useGetSessionsByLecturer"
+import { useCameraControl } from "@/hooks/useCameraControl"
 
 
 
@@ -19,6 +20,7 @@ export default function SessionsPage() {
         const { session: lecturerSession } = useLecturerSession();
         const { UpdateSessionStatus } = UseUpdateSessionStatus();
         const { MarkAttendance } = useMarkAttendance();
+        const { startCameraForSession, stopCameraSession } = useCameraControl();
 const { courseUnits, loading: courseUnitsLoading } = useGetAllCourseUnits();
 const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.filter(cu => cu.lecturerId === lecturerSession?.userId);
 const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecturerSession?.userId as Id<"lecturers">);
@@ -54,11 +56,23 @@ const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecture
 
   const handleStartSession = async (sessionId: Id<"attendance_sessions">) => {
         await UpdateSessionStatus(sessionId, "live");
+        // Start camera for the session
+        const session = sessions.find(s => s._id === sessionId);
+        if (session) {
+          startCameraForSession(
+            sessionId, 
+            session.courseUnitCode, 
+            session.sessionTitle || "Attendance Session",
+            "manual"
+          );
+        }
 //     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "live" } : s)))
   }
 
   const handleEndSession = async (sessionId: Id<"attendance_sessions">) => {
     await UpdateSessionStatus(sessionId, "closed");
+    // Stop camera when session ends
+    stopCameraSession();
 //     setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, status: "closed" } : s)))
   }
 

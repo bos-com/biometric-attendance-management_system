@@ -11,11 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/adminComponents/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/adminComponents/ui/avatar"
-import { GraduationCap, Plus, Bell, Settings, LogOut as SignOut, User, ExternalLink } from "lucide-react"
+import { GraduationCap, Plus, Bell, Settings, LogOut as SignOut, User, ExternalLink, Camera, Video } from "lucide-react"
 import { useLecturerSession } from '@/hooks/useLecturerSession';
 import useGetLecturer from "@/hooks/useGetLecturer"
 import { Id } from "@/convex/_generated/dataModel"
 import useLogout from "@/hooks/useLogout"
+import { useCameraControl } from "@/hooks/useCameraControl"
 
 interface DashboardHeaderProps {
   onCreateSession?: () => void
@@ -25,6 +26,7 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
   const {session} = useLecturerSession();
      const Lecturer = useGetLecturer(session?.userId as Id<"lecturers">);
         const {LogOut} = useLogout();
+  const { cameraState, toggleCameraMinimize } = useCameraControl();
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-white">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -42,6 +44,23 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            {/* Camera Status Indicator */}
+            {cameraState.isActive && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleCameraMinimize}
+                className="flex items-center gap-2 bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
+                </span>
+                <Video className="h-4 w-4" />
+                <span className="hidden sm:inline">Recording</span>
+              </Button>
+            )}
+
             {/* Link to attendance module */}
             <Button variant="outline" size="sm" asChild className="hidden sm:flex bg-transparent">
               <Link href="/attendance">
@@ -51,12 +70,12 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
+            {/* <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
                 3
               </span>
-            </Button>
+            </Button> */}
 
             {/* User menu */}
             <DropdownMenu>
@@ -81,12 +100,10 @@ export function DashboardHeader({ onCreateSession }: DashboardHeaderProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
+                  <Link href="/admin/profile" className="flex items-center w-full ">
                   <User className="mr-2 h-4 w-4" />
                   Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
