@@ -50,7 +50,7 @@ const SignupPage = () => {
         if (!res.success) {
                 throw new Error(res.message)
         }
-        router.push("/admin")
+        router.push("/admin/sessions")
       });
     } catch (err) {
       console.error(err)

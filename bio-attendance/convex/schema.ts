@@ -105,5 +105,15 @@ export default defineSchema({
   }).index("by_token", ["token"])
   .index("by_lecturer", ["lecturerId"]),
 
+  // Password reset tokens for forgot password flow
+  passwordResetTokens: defineTable({
+    lecturerId: v.id("lecturers"),
+    token: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    used: v.boolean(),
+  })
+    .index("by_token", ["token"])
+    .index("by_lecturer", ["lecturerId"]),
 
 });

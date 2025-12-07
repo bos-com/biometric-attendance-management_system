@@ -30,7 +30,7 @@ const SigninPage = () => {
         setSubmitting(false)
         return
       }
-      router.push("/admin")
+      router.push("/admin/sessions")
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "Unable to sign in")
@@ -132,7 +132,7 @@ const SigninPage = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                  <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
                     Forgot password?
                   </Link>
                 </div>
