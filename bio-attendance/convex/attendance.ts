@@ -1,6 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 
+// Grace period in minutes - students arriving within this time after session starts are marked "present"
+const LATE_THRESHOLD_MINUTES = 15;
+
 export const recordRecognition = mutation({
   args: {
     sessionId: v.id("attendance_sessions"),
@@ -31,12 +34,20 @@ export const recordRecognition = mutation({
       return existing._id;
     }
 
+    // Determine if student is early/on-time or late based on arrival time
+    const now = Date.now();
+    const lateThreshold = session.startsAt + (LATE_THRESHOLD_MINUTES * 60 * 1000);
+    
+    // Student is "present" if they arrive before or within the grace period
+    // Student is "late" if they arrive after the grace period
+    const status: "present" | "late" = now <= lateThreshold ? "present" : "late";
+
     return await ctx.db.insert("attendance_records", {
       sessionId: args.sessionId,
       courseUnitCode: session.courseUnitCode,
       studentId: args.studentDocId,
       confidence: args.confidence,
-      status: args.confidence >= 0.8 ? "present" : "late",
+      status,
     });
   },
 });

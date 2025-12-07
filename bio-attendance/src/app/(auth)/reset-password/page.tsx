@@ -106,7 +106,7 @@ const ResetPasswordContent = () => {
   // This prevents the "token used" error from showing after successful reset
   if (success) {
     return (
-      <main className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+      <main className="flex min-h-screen w-full items-center justify-center bg-linear-to-br from-green-50 via-white to-blue-50 p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -139,7 +139,7 @@ const ResetPasswordContent = () => {
   // Show loading state while validating token
   if (tokenValidation === undefined) {
     return (
-      <main className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+      <main className="flex min-h-screen w-full items-center justify-center bg-linear-to-br from-green-50 via-white to-blue-50 p-6">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -153,7 +153,7 @@ const ResetPasswordContent = () => {
   // Show error if token is invalid or expired
   if (!tokenValidation?.valid) {
     return (
-      <main className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 p-6">
+      <main className="flex min-h-screen w-full items-center justify-center bg-linear-to-br from-red-50 via-white to-orange-50 p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
@@ -392,7 +392,7 @@ const ResetPasswordContent = () => {
 const ResetPasswordPage = () => {
   return (
     <Suspense fallback={
-      <main className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+      <main className="flex min-h-screen w-full items-center justify-center bg-linear-to-br from-green-50 via-white to-blue-50 p-6">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
