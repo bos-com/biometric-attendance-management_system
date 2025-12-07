@@ -44,13 +44,16 @@ const StudentRegistrationPage = () => {
   const [gender, setGender] = useState("")
   const [courseUnitInput, setCourseUnitInput] = useState("")
   const [courseUnits, setCourseUnits] = useState<string[]>([])
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage">[] | null>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [photoStorageIds, setPhotoStorageIds] = useState<Id<"_storage">[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitState, setSubmitState] = useState<{ status: "idle" | "success" | "error"; message?: string }>({
     status: "idle",
   })
+
+  const MAX_PHOTOS = 5
 
 
   const handleAddCourseUnit = () => {
@@ -65,46 +68,87 @@ const StudentRegistrationPage = () => {
   }
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setPhotoPreview(URL.createObjectURL(file))
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    // Convert FileList to array and limit to remaining slots
+    const newFiles = Array.from(files).slice(0, MAX_PHOTOS - selectedFiles.length)
+    
+    if (newFiles.length === 0) {
+      setSubmitState({ status: "error", message: `Maximum ${MAX_PHOTOS} photos allowed` })
+      return
+    }
+
+    // Add new files to existing selection
+    setSelectedFiles(prev => [...prev, ...newFiles].slice(0, MAX_PHOTOS))
+    
+    // Create previews for new files
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file))
+    setPhotoPreviews(prev => [...prev, ...newPreviews].slice(0, MAX_PHOTOS))
+  }
+
+  const removePhoto = (index: number) => {
+    // Revoke the object URL to free memory
+    URL.revokeObjectURL(photoPreviews[index])
+    
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
+    setPhotoStorageIds(prev => prev.filter((_, i) => i !== index))
   }
 
   const {start} = embedImage();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-        setIsSubmitting(true)
-    let file: File | null = null
-    if (photoPreview) {
-      const response = await fetch(photoPreview)
-      const blob = await response.blob()
-      file = new File([blob], "photo.jpg", { type: blob.type })
+    setIsSubmitting(true)
+
+    // Validate at least one photo
+    if (selectedFiles.length === 0) {
+      setSubmitState({ status: "error", message: "Please upload at least one photo" })
+      setIsSubmitting(false)
+      return
     }
-    const photoembeddings = file && await start(file).then((res) => {
-        console.log("Embeddings generated:", res?.descriptor);
-        const descriptor = res?.descriptor;
+
+    // Generate embeddings from the first photo
+    const firstFile = selectedFiles[0]
+    const photoembeddings = await start(firstFile).then((res) => {
+      console.log("Embeddings generated:", res?.descriptor);
+      const descriptor = res?.descriptor;
       return Array.isArray(descriptor?.[0]) 
         ? (descriptor as number[][])[0]
-           : (descriptor as number[] | undefined);
+        : (descriptor as number[] | undefined);
     })
+
+    let uploadedStorageIds: Id<"_storage">[] = []
 
     try {
       setUploadingPhoto(true)
-      const uploadUrl = await generateUploadUrl()
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file?.type || "application/octet-stream" },
-        body: file,
+      
+      // Upload all selected photos
+      const uploadPromises = selectedFiles.map(async (file) => {
+        const uploadUrl = await generateUploadUrl()
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`)
+        }
+        
+        const { storageId } = await response.json()
+        return storageId as Id<"_storage">
       })
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
-      const { storageId } = await response.json()
-      setPhotoStorageId([storageId as Id<"_storage">])
+
+      uploadedStorageIds = await Promise.all(uploadPromises)
+      setPhotoStorageIds(uploadedStorageIds)
+      console.log(`Successfully uploaded ${uploadedStorageIds.length} photos`)
     } catch (err) {
       console.error(err)
       setSubmitState({ status: "error", message: "Photo upload failed" })
+      setIsSubmitting(false)
+      return
     } finally {
       setUploadingPhoto(false)
     }
@@ -122,8 +166,8 @@ const StudentRegistrationPage = () => {
         gender: gender || undefined,
         courseUnits,
         photoDataUrl: undefined,
-        photoStorageId: photoStorageId ?? undefined,
-        photoEmbeddings:photoembeddings??undefined,
+        photoStorageId: uploadedStorageIds.length > 0 ? uploadedStorageIds : undefined,
+        photoEmbeddings: photoembeddings ?? undefined,
       }).then((res) => {
         if (!res.success) {
                   console.error(res.message)
@@ -139,8 +183,9 @@ const StudentRegistrationPage = () => {
       setProgram("")
       setGender("")
       setCourseUnits([])
-      setPhotoPreview(null)
-      setPhotoStorageId(null)
+      setPhotoPreviews([])
+      setSelectedFiles([])
+      setPhotoStorageIds([])
       })
     } catch (err) {
       console.error(err)
@@ -362,65 +407,93 @@ const StudentRegistrationPage = () => {
           {/* Photo Upload */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="border-b bg-slate-50/50 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                  <Camera className="h-5 w-5 text-green-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                    <Camera className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Student Photos</CardTitle>
+                    <CardDescription>Upload up to {MAX_PHOTOS} clear photos for better face recognition</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg">Student Photo</CardTitle>
-                  <CardDescription>Upload a clear photo for identification</CardDescription>
+                <div className="text-sm text-muted-foreground">
+                  {photoPreviews.length}/{MAX_PHOTOS} photos
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex flex-col items-start gap-6 sm:flex-row">
-                <label
-                  htmlFor="photo-upload"
-                  className="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 px-6 py-8 transition-colors hover:border-primary/50 hover:bg-muted/40 sm:flex-1"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    <Upload className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-foreground">Click to upload photo</p>
-                  <p className="mt-1 text-xs text-muted-foreground">PNG, JPG up to 5MB</p>
-                  <input
-                    id="photo-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple={true}
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                </label>
+              <div className="space-y-4">
+                {/* Upload Area */}
+                {photoPreviews.length < MAX_PHOTOS && (
+                  <label
+                    htmlFor="photo-upload"
+                    className="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 px-6 py-6 transition-colors hover:border-primary/50 hover:bg-muted/40"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                      <Upload className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-foreground">
+                      Click to upload photos ({MAX_PHOTOS - photoPreviews.length} remaining)
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">PNG, JPG up to 5MB each • Select multiple files</p>
+                    <input
+                      id="photo-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple={true}
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
 
-                {(photoPreview || uploadingPhoto) && (
-                  <div className="relative">
-                    {uploadingPhoto ? (
-                      <div className="flex h-40 w-40 items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20">
-                        <div className="text-center">
-                          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                          <p className="mt-2 text-xs text-muted-foreground">Uploading...</p>
-                        </div>
-                      </div>
-                    ) : photoPreview ? (
-                      <div className="relative">
+                {/* Photo Previews Grid */}
+                {photoPreviews.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+                    {photoPreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
                         <Image
-                          src={photoPreview || "/placeholder.svg"}
-                          alt="Student preview"
-                          width={160}
-                          height={160}
+                          src={preview}
+                          alt={`Student photo ${index + 1}`}
+                          width={120}
+                          height={120}
                           unoptimized
-                          className="h-40 w-40 rounded-xl object-cover shadow-md"
+                          className="h-28 w-full rounded-lg object-cover shadow-md"
                         />
-                        {photoStorageId && (
-                          <div className="absolute -right-2 -top-2 rounded-full bg-green-500 p-1">
-                            <CheckCircle2 className="h-4 w-4 text-white" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">
+                          {index + 1}
+                        </div>
+                        {index === 0 && (
+                          <div className="absolute bottom-1 right-1 rounded bg-primary px-1.5 py-0.5 text-xs text-white">
+                            Primary
                           </div>
                         )}
                       </div>
-                    ) : null}
+                    ))}
                   </div>
                 )}
+
+                {/* Upload Progress */}
+                {uploadingPhoto && (
+                  <div className="flex items-center justify-center gap-3 rounded-lg bg-blue-50 p-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Uploading {selectedFiles.length} photo(s)...</p>
+                  </div>
+                )}
+
+                {/* Helper Text */}
+                <p className="text-xs text-muted-foreground">
+                  <strong>Tip:</strong> Upload photos from different angles for better face recognition accuracy. 
+                  The first photo will be used to generate face embeddings.
+                </p>
               </div>
             </CardContent>
           </Card>

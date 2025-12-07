@@ -1,17 +1,55 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as faceapi from "face-api.js";
-import useGetImageEmbeddings from "@/hooks/useGetImageEmbeddings";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { Badge } from "@/adminComponents/ui/badge";
+import { Card } from "@/components/ui/card";
+import { CheckCircle, Users, Clock, AlertCircle, BookOpen } from "lucide-react";
 
-const VideoCapture = () => {
+interface VideoCaptureProps {
+  sessionId?: Id<"attendance_sessions">;
+  onStudentRecognized?: (studentId: string, studentName: string, confidence: number) => void;
+}
+
+interface RecognizedStudent {
+  studentId: string;
+  name: string;
+  confidence: number;
+  timestamp: Date;
+}
+
+const VideoCapture = ({ sessionId, onStudentRecognized }: VideoCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [faceMatcher, setFaceMatcher] = useState<faceapi.FaceMatcher | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const isProcessingRef = useRef(false); // Use ref instead of state to avoid closure issues
+  const [recognizedStudents, setRecognizedStudents] = useState<RecognizedStudent[]>([]);
+  const recognizedIdsRef = useRef<Set<string>>(new Set());
+  const faceMatcherRef = useRef<faceapi.FaceMatcher | null>(null); // Keep faceMatcher in ref too
 
-  const result = useGetImageEmbeddings();
-//   console.log("Embeddings fetched:", result);
+  // Fetch the session to get the courseUnitCode
+  const session = useQuery(
+    api.classSessions.getSessionById,
+    sessionId ? { sessionId } : "skip"
+  );
+
+  // Fetch students only for the course unit in this session
+  const courseUnitCode = session?.courseUnitCode;
+  const studentsForCourse = useQuery(
+    api.faces.getFaceEmbeddingsByCourseUnit,
+    courseUnitCode ? { courseUnitCode } : "skip"
+  );
+
+  const recordAttendance = useMutation(api.attendance.recordRecognition);
+
+  // Keep faceMatcherRef in sync
+  useEffect(() => {
+    faceMatcherRef.current = faceMatcher;
+  }, [faceMatcher]);
 
   // Load face-api models
   useEffect(() => {
@@ -26,20 +64,19 @@ const VideoCapture = () => {
     });
   }, []);
 
-  // Load labeled faces from student images
+  // Load labeled faces from student images (now filtered by course unit)
   useEffect(() => {
-    if (!modelsLoaded || !result?.Search) return;
+    if (!modelsLoaded || !studentsForCourse || studentsForCourse.length === 0) return;
 
     const loadLabeledImages = async () => {
-      const students = result.Search;
-      if (!students || students.length === 0) return;
-
-      console.log("Loading labeled images for", students.length, "students");
+      const students = studentsForCourse;
+      console.log(`Loading labeled images for ${students.length} students in course ${courseUnitCode}`);
 
       const labeledDescriptors = await Promise.all(
         students.map(async (student) => {
-                console.log("Processing student:", student.studentImages);
-          const label = `${student.firstName} ${student.lastName}`;
+          console.log("Processing student:", student.studentImages);
+          // Store studentId|firstName lastName for tracking
+          const label = `${student.studentId}|${student.firstName} ${student.lastName}`;
           const descriptions: Float32Array[] = [];
 
           // Process each image URL for this student
@@ -83,7 +120,48 @@ const VideoCapture = () => {
     };
 
     loadLabeledImages();
-  }, [modelsLoaded, result?.Search]);
+  }, [modelsLoaded, studentsForCourse, courseUnitCode]);
+
+  // Handle recording attendance when a student is recognized
+  const handleStudentRecognition = useCallback(async (
+    studentId: string,
+    studentName: string,
+    confidence: number
+  ) => {
+    // Skip if already recognized in this session
+    if (recognizedIdsRef.current.has(studentId)) return;
+
+    recognizedIdsRef.current.add(studentId);
+    
+    const newRecognition: RecognizedStudent = {
+      studentId,
+      name: studentName,
+      confidence,
+      timestamp: new Date(),
+    };
+    
+    setRecognizedStudents(prev => [newRecognition, ...prev]);
+
+    // Callback for parent component
+    if (onStudentRecognized) {
+      onStudentRecognized(studentId, studentName, confidence);
+    }
+
+    // Record to database if session is active
+    if (sessionId) {
+      try {
+        await recordAttendance({
+          sessionId,
+          studentDocId: studentId as Id<"students">,
+          confidence,
+          source: "auto",
+        });
+        console.log(` Attendance recorded for ${studentName}`);
+      } catch (err) {
+        console.error(` Failed to record attendance for ${studentName}:`, err);
+      }
+    }
+  }, [sessionId, recordAttendance, onStudentRecognized]);
 
   useEffect(() => {
     if (!modelsLoaded) return;
@@ -133,36 +211,62 @@ const VideoCapture = () => {
         faceapi.matchDimensions(overlay, displaySize);
 
         const intervalId = setInterval(async () => {
-          const detections = await faceapi
-            .detectAllFaces(videoRef.current!, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceExpressions()
-            .withFaceDescriptors();
+          // Use ref to prevent concurrent processing
+          if (isProcessingRef.current) return;
+          if (!videoRef.current || videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+          
+          isProcessingRef.current = true;
 
-          const resized = faceapi.resizeResults(detections, displaySize);
+          try {
+            const detections = await faceapi
+              .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+              .withFaceLandmarks()
+              .withFaceExpressions()
+              .withFaceDescriptors();
 
-          const ctx = overlay.getContext("2d");
-          ctx?.clearRect(0, 0, overlay.width, overlay.height);
+            const resized = faceapi.resizeResults(detections, displaySize);
 
-          resized.forEach((det, i) => {
-            const box = det.detection.box;
-            let label = "Unknown";
+            const ctx = overlay.getContext("2d");
+            ctx?.clearRect(0, 0, overlay.width, overlay.height);
 
-            if (faceMatcher && detections[i]?.descriptor) {
-              const bestMatch = faceMatcher.findBestMatch(detections[i].descriptor);
-              // bestMatch.label will be "unknown" if distance > threshold
-              // bestMatch.distance shows how different the faces are (lower = better match)
-              label = bestMatch.label === "unknown" 
-                ? `Unknown (${bestMatch.distance.toFixed(2)})` 
-                : `${bestMatch.label} (${bestMatch.distance.toFixed(2)})`;
-        //       console.log("Match:", bestMatch.label, "Distance:", bestMatch.distance);
-            }
+            const currentFaceMatcher = faceMatcherRef.current;
 
-            const drawBox = new faceapi.draw.DrawBox(box, { label });
-            drawBox.draw(overlay);
+            resized.forEach((det, i) => {
+              const box = det.detection.box;
+              let displayLabel = "Unknown";
+              let boxColor = "#ff0000"; // Red for unknown
 
-          });
-        }, 1);
+              if (currentFaceMatcher && detections[i]?.descriptor) {
+                const bestMatch = currentFaceMatcher.findBestMatch(detections[i].descriptor);
+                
+                if (bestMatch.label !== "unknown" && bestMatch.distance < 0.5) {
+                  // Parse studentId and name from label
+                  const [studentId, studentName] = bestMatch.label.split("|");
+                  const confidence = 1 - bestMatch.distance;
+                  
+                  displayLabel = `${studentName} (${(confidence * 100).toFixed(0)}%)`;
+                  boxColor = "#00ff00"; // Green for recognized
+                  
+                  // Record attendance (will skip if already recorded)
+                  handleStudentRecognition(studentId, studentName, confidence);
+                } else {
+                  displayLabel = `Unknown (${(bestMatch.distance * 100).toFixed(0)}%)`;
+                }
+              }
+
+              const drawBox = new faceapi.draw.DrawBox(box, { 
+                label: displayLabel,
+                boxColor,
+                lineWidth: 2,
+              });
+              drawBox.draw(overlay);
+            });
+          } catch (err) {
+            console.error("Face detection error:", err);
+          } finally {
+            isProcessingRef.current = false;
+          }
+        }, 500); // Run detection every 500ms for better performance
 
         // Store interval id so you can clear it
         overlay.dataset.intervalId = String(intervalId);
@@ -182,21 +286,112 @@ const VideoCapture = () => {
         clearInterval(Number(intervalId));
       }
     };
-  }, [modelsLoaded, faceMatcher]);
+  }, [modelsLoaded, handleStudentRecognition]);
+
+  // Reset recognized students when session changes
+  useEffect(() => {
+    recognizedIdsRef.current.clear();
+    setRecognizedStudents([]);
+  }, [sessionId]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full bg-amber-300 overflow-hidden"
-    >
-      <video
-        ref={videoRef}
-        className="h-full w-full object-cover"
-        autoPlay
-        muted
-        playsInline
-      />
-      
+    <div className="flex h-full w-full gap-4">
+      {/* Video Feed */}
+      <div
+        ref={containerRef}
+        className="relative flex-1 bg-gray-900 rounded-lg overflow-hidden"
+      >
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          autoPlay
+          muted
+          playsInline
+        />
+        
+        {/* Status Overlay */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <Badge 
+            className={`${modelsLoaded ? "bg-green-600" : "bg-yellow-600"} text-white`}
+          >
+            {modelsLoaded ? "Models Loaded" : "Loading Models..."}
+          </Badge>
+          {courseUnitCode && (
+            <Badge className="bg-indigo-600 text-white flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              {courseUnitCode}
+            </Badge>
+          )}
+          {faceMatcher && (
+            <Badge className="bg-blue-600 text-white">
+              <Users className="h-3 w-3 mr-1" />
+              {studentsForCourse?.length || 0} Students
+            </Badge>
+          )}
+          {sessionId && (
+            <Badge className="bg-purple-600 text-white animate-pulse">
+              <span className="mr-1">●</span> Recording Active
+            </Badge>
+          )}
+        </div>
+
+        {/* Recognition Counter */}
+        <div className="absolute top-4 right-4">
+          <Card className="bg-white/90 backdrop-blur p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-green-600">{recognizedStudents.length}</p>
+                <p className="text-xs text-gray-500">Recognized</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Recognized Students Panel */}
+      <div className="w-80 bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
+        <div className="p-4 bg-green-600 text-white">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            <h3 className="font-semibold">Attendance Log</h3>
+          </div>
+          <p className="text-sm text-green-100 mt-1">
+            {recognizedStudents.length} student{recognizedStudents.length !== 1 ? "s" : ""} marked present
+          </p>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-2">
+          {recognizedStudents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4">
+              <AlertCircle className="h-12 w-12 mb-2" />
+              <p className="text-center text-sm">
+                No students recognized yet. Students will appear here when detected.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recognizedStudents.map((student, index) => (
+                <Card key={`${student.studentId}-${index}`} className="p-3 bg-green-50 border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-sm">{student.name}</span>
+                    </div>
+                    <Badge className="bg-green-600 text-xs">
+                      {(student.confidence * 100).toFixed(0)}%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                    <Clock className="h-3 w-3" />
+                    {student.timestamp.toLocaleTimeString()}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
