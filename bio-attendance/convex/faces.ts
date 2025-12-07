@@ -145,3 +145,51 @@ export const replaceEmbedding = mutation({
                 return filteredEmbeddings;
         },
         });
+
+// Get face embeddings only for students enrolled in a specific course unit
+export const getFaceEmbeddingsByCourseUnit = query({
+        args: { courseUnitCode: v.string() },
+        handler: async (ctx, args) => {
+                // Get all students and filter by courseUnit (since courseUnits is an array)
+                const allStudents = await ctx.db.query("students").collect();
+                const enrolledStudents = allStudents.filter(
+                        (student) => student.courseUnits.includes(args.courseUnitCode)
+                );
+
+                if (enrolledStudents.length === 0) {
+                        return [];
+                }
+
+                // Get face embeddings for enrolled students
+                const studentIds = new Set(enrolledStudents.map((s) => s._id));
+                const faceEmbeddings = await ctx.db.query("faceEmbeddings").collect();
+                const relevantEmbeddings = faceEmbeddings.filter((fe) => studentIds.has(fe.studentId));
+
+                const embeddingsWithStudent = await Promise.all(
+                        relevantEmbeddings.map(async (embedding) => {
+                                const student = enrolledStudents.find((s) => s._id === embedding.studentId);
+                                if (!student) return null;
+
+                                const studentImages = student.photoStorageId 
+                                        ? await Promise.all(
+                                                student.photoStorageId.map(async (image: string) => {
+                                                        return await ctx.storage.getUrl(image);
+                                                })
+                                        ) 
+                                        : [];
+
+                                return {
+                                        studentId: embedding.studentId,
+                                        descriptor: embedding.descriptor,
+                                        version: embedding.version,
+                                        firstName: student.firstName,
+                                        lastName: student.lastName,
+                                        studentCode: student.studentId,
+                                        studentImages: studentImages.filter((url) => url !== null),
+                                };
+                        }),
+                );
+
+                return embeddingsWithStudent.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+        },
+});

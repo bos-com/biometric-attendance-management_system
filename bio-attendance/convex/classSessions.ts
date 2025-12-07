@@ -99,6 +99,29 @@ export const liveByClass = query({
   },
 });
 
+// Get the current live session for a lecturer
+export const getLiveSessionByLecturer = query({
+  args: { lecturerId: v.id("lecturers") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("attendance_sessions")
+      .withIndex("by_lecturer", (q) => q.eq("lecturerId", args.lecturerId))
+      .filter((q) => q.eq(q.field("status"), "live"))
+      .first();
+  },
+});
+
+// Get all live sessions (for attendance module without lecturer context)
+export const getAllLiveSessions = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("attendance_sessions")
+      .filter((q) => q.eq(q.field("status"), "live"))
+      .collect();
+  },
+});
+
 export const listByClass = query({
   args: { sessionId: v.id("attendance_sessions") },
   handler: async (ctx, args) => {
