@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import {api} from "@/convex/_generated/api";
+import { api, internal } from "./_generated/api";
 import bcrypt from "bcryptjs";
 import {
   MutationCtx,
@@ -222,5 +222,150 @@ export const changePassword = mutation({
     });
 
     return { success: true, message: "Password changed successfully" };
+  },
+});
+
+// Password Reset Token Generation
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 30; // 30 minutes
+
+export const createPasswordResetToken = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const lecturer = await ctx.db
+      .query("lecturers")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+console.log("Creating password reset token for email:", lecturer?.fullName);
+    if (!lecturer) {
+      // Don't reveal if email exists - return success anyway for security
+      return { success: true, message: "If the email exists, a reset link has been sent" };
+    }
+
+    // Invalidate any existing tokens for this user
+    const existingTokens = await ctx.db
+      .query("passwordResetTokens")
+      .withIndex("by_lecturer", (q) => q.eq("lecturerId", lecturer._id))
+      .collect();
+
+    for (const token of existingTokens) {
+      await ctx.db.patch(token._id, { used: true });
+    }
+
+    // Generate a secure token
+    const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 15)}-${Math.random().toString(36).slice(2, 15)}`;
+
+    await ctx.db.insert("passwordResetTokens", {
+      lecturerId: lecturer._id,
+      token,
+      expiresAt: Date.now() + RESET_TOKEN_TTL_MS,
+      createdAt: Date.now(),
+      used: false,
+    });
+
+    return { 
+      success: true, 
+      message: "Password reset token created",
+      token, // This will be used by the action to send the email
+      lecturerEmail: lecturer.email,
+      lecturerName: lecturer.fullName,
+    };
+  },
+});
+
+export const validateResetToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const resetToken = await ctx.db
+      .query("passwordResetTokens")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+
+    if (!resetToken) {
+      return { valid: false, message: "Invalid reset token" };
+    }
+
+    if (resetToken.used) {
+      return { valid: false, message: "This reset link has already been used" };
+    }
+
+    if (resetToken.expiresAt < Date.now()) {
+      return { valid: false, message: "This reset link has expired" };
+    }
+
+    return { valid: true, lecturerId: resetToken.lecturerId };
+  },
+});
+
+// Internal query to validate token (used by action to avoid circular reference)
+export const validateResetTokenInternal = internalQuery({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const resetToken = await ctx.db
+      .query("passwordResetTokens")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+
+    if (!resetToken) {
+      return { valid: false as const, message: "Invalid reset token", tokenId: null, lecturerId: null };
+    }
+
+    if (resetToken.used) {
+      return { valid: false as const, message: "This reset link has already been used", tokenId: null, lecturerId: null };
+    }
+
+    if (resetToken.expiresAt < Date.now()) {
+      return { valid: false as const, message: "This reset link has expired", tokenId: null, lecturerId: null };
+    }
+
+    return { valid: true as const, lecturerId: resetToken.lecturerId, tokenId: resetToken._id, message: null };
+  },
+});
+
+// Internal mutation to update password (called by the action)
+export const updatePasswordInternal = internalMutation({
+  args: {
+    lecturerId: v.id("lecturers"),
+    passwordHash: v.string(),
+    tokenId: v.id("passwordResetTokens"),
+  },
+  handler: async (ctx, args) => {
+    // Update the password
+    await ctx.db.patch(args.lecturerId, {
+      passwordHash: args.passwordHash,
+    });
+
+    // Mark token as used
+    await ctx.db.patch(args.tokenId, { used: true });
+
+    return { success: true };
+  },
+});
+
+export const resetPasswordWithToken = action({
+  args: { 
+    token: v.string(),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
+    // Validate the token using internal query
+    const tokenValidation = await ctx.runQuery(internal.lecturers.validateResetTokenInternal, {
+      token: args.token,
+    });
+
+    if (!tokenValidation.valid) {
+      return { success: false, message: tokenValidation.message || "Invalid reset token" };
+    }
+
+    // Hash the new password
+    const passwordHash = await bcrypt.hash(args.newPassword, 10);
+
+    // Update the password using internal mutation
+    await ctx.runMutation(internal.lecturers.updatePasswordInternal, {
+      lecturerId: tokenValidation.lecturerId!,
+      passwordHash,
+      tokenId: tokenValidation.tokenId!,
+    });
+
+    return { success: true, message: "Password has been reset successfully" };
   },
 });
