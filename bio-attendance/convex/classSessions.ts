@@ -3,9 +3,9 @@ import { ConvexError, v } from "convex/values";
 
 export const create = mutation({
   args: {
-        lecturerId: v.id("lecturers"),
+        lecturerId: v.optional(v.id("lecturers")),
         sessionTitle: v.string(),
-        description: v.string(),
+        description: v.optional(v.string()),
         courseUnitCode: v.string(),
         startsAt: v.number(),
         endsAt: v.number(),
