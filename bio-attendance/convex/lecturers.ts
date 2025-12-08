@@ -48,6 +48,7 @@ export const createLecturer = mutation({
     email: v.string(),
     password: v.string(),
     staffId: v.string(),
+    
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -64,7 +65,7 @@ export const createLecturer = mutation({
       email: args.email,
       passwordHash:args.password,
         staffId: args.staffId,
-        role:"lecture"
+        role:"admin"
     });
     return { success: true, message: "Lecturer created successfully"  }; 
   },
