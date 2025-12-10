@@ -13,6 +13,8 @@ import {AttendanceRecord} from "@/lib/types"
 import useMarkAttendance from "@/hooks/useMarkAttendance"
 import useGetSessionsByLecturer from "@/hooks/useGetSessionsByLecturer"
 import { useCameraControl } from "@/hooks/useCameraControl"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 
 
@@ -21,6 +23,8 @@ export default function SessionsPage() {
         const { UpdateSessionStatus } = UseUpdateSessionStatus();
         const { MarkAttendance } = useMarkAttendance();
         const { startCameraForSession, stopCameraSession } = useCameraControl();
+        const updateSessionMutation = useMutation(api.classSessions.updateSession);
+        const deleteSessionMutation = useMutation(api.classSessions.deleteSession);
 const { courseUnits, loading: courseUnitsLoading } = useGetAllCourseUnits();
 const lecturerCourses = courseUnitsLoading || !courseUnits ? [] : courseUnits.filter(cu => cu.lecturerId === lecturerSession?.userId);
 const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecturerSession?.userId as Id<"lecturers">);
@@ -45,13 +49,48 @@ const { students, loading: studentsLoading } = useGetStudentsPerLecturer(lecture
 //     setSessions((prev) => [session, ...prev])
   }
 
-  const handleUpdateSession = (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => {
-        
-    setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, ...updates } : s)))
+  const handleUpdateSession = async (sessionId: Id<"attendance_sessions">, updates: Partial<AttendanceSession>) => {
+    try {
+      const result = await updateSessionMutation({
+        sessionId,
+        courseUnitCode: updates.courseUnitCode,
+        sessionTitle: updates.sessionTitle,
+        description: updates.description,
+        startsAt: updates.startsAt,
+        endsAt: updates.endsAt,
+        location: updates.location,
+      });
+      
+      if (!result.success) {
+        console.error("Failed to update session:", result.message);
+        alert(result.message);
+        return;
+      }
+      
+      // Update local state for immediate UI feedback
+      setSessions((prev) => prev.map((s) => (s._id === sessionId ? { ...s, ...updates } : s)));
+    } catch (error) {
+      console.error("Error updating session:", error);
+      alert("Failed to update session");
+    }
   }
 
-  const handleDeleteSession = (sessionId: Id<"attendance_sessions">) => {
-    setSessions((prev) => prev.filter((s) => s._id !== sessionId))
+  const handleDeleteSession = async (sessionId: Id<"attendance_sessions">) => {
+    try {
+      const result = await deleteSessionMutation({ sessionId });
+      
+      if (!result.success) {
+        console.error("Failed to delete session:", result.message);
+        alert(result.message);
+        return;
+      }
+      
+      // Update local state for immediate UI feedback
+      setSessions((prev) => prev.filter((s) => s._id !== sessionId));
+    } catch (error) {
+      console.error("Error deleting session:", error);
+      alert("Failed to delete session");
+    }
   }
 
   const handleStartSession = async (sessionId: Id<"attendance_sessions">) => {

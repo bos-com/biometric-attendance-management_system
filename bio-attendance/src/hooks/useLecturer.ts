@@ -4,13 +4,16 @@ import { api } from "../../convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import bcrypt from "bcryptjs";
 import { createLecturer } from "@/convex/lecturers";
+import { Id } from "../../convex/_generated/dataModel";
+
 interface user {
         staffId: string,
         email: string,
         password: string,
         phoneNumber?: string,
         fullName: string,
-        role?:string
+        role?:string,
+        courseUnitIds?: Id<"course_units">[]
 }
 interface res {
         success: boolean;
@@ -25,6 +28,8 @@ interface res {
                     role?:string
                 }|null;
         token?: string | null;
+        conflicts?: string[];
+        hasConflicts?: boolean;
         }     
 const useLecturer = () => {
         const create = useMutation(api.lecturers.createLecturer);
@@ -37,13 +42,20 @@ const useLecturer = () => {
                 const res = await create({
                         ...User,
                         password: passwordHash,
+                        courseUnitIds: User.courseUnitIds,
                 }
                 );
                  if(!res.success){
                         return { success: false, message: res.message , status: 400 };
                 }
 
-                return { success: true, message:res.message ,  status: 200, };
+                return { 
+                        success: true, 
+                        message: res.message, 
+                        status: 200,
+                        conflicts: res.conflicts,
+                        hasConflicts: res.hasConflicts
+                };
                 }catch(error){
                         return  { success: false, message: error as string , status: 500 };
                         
