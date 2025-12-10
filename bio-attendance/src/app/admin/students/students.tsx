@@ -74,7 +74,7 @@ export default function CourseStudentsPage() {
 
 
   return (
-    <div className="w-full h-full" >
+    <div className="w-full min-h-full" >
         <CourseStudentsView
       courseUnits={lecturerCourseUnits}
       selectedCourse={selectedCourse}

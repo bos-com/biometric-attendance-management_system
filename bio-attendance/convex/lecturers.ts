@@ -48,7 +48,7 @@ export const createLecturer = mutation({
     email: v.string(),
     password: v.string(),
     staffId: v.string(),
-    
+    courseUnitIds: v.optional(v.array(v.id("course_units"))),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -59,15 +59,43 @@ export const createLecturer = mutation({
     if (existing) {
       throw new ConvexError("Email already registered");
     }
-  
-    await ctx.db.insert("lecturers", {
+
+    // Check for course units that are already assigned to another lecturer
+    const conflictMessages: string[] = [];
+    if (args.courseUnitIds && args.courseUnitIds.length > 0) {
+      for (const unitId of args.courseUnitIds) {
+        const unit = await ctx.db.get(unitId);
+        if (unit && unit.lecturerId) {
+          const existingLecturer = await ctx.db.get(unit.lecturerId);
+          conflictMessages.push(
+            `"${unit.name}" is already assigned to ${existingLecturer?.fullName || "another lecturer"}`
+          );
+        }
+      }
+    }
+
+    // Create the lecturer
+    const lecturerId = await ctx.db.insert("lecturers", {
       fullName: args.fullName,
       email: args.email,
-      passwordHash:args.password,
-        staffId: args.staffId,
-        role:"admin"
+      passwordHash: args.password,
+      staffId: args.staffId,
+      role: "admin"
     });
-    return { success: true, message: "Lecturer created successfully"  }; 
+
+    // Assign selected course units to this lecturer
+    if (args.courseUnitIds && args.courseUnitIds.length > 0) {
+      for (const unitId of args.courseUnitIds) {
+        await ctx.db.patch(unitId, { lecturerId });
+      }
+    }
+
+    return { 
+      success: true, 
+      message: "Lecturer created successfully",
+      conflicts: conflictMessages,
+      hasConflicts: conflictMessages.length > 0
+    }; 
   },
 });
 

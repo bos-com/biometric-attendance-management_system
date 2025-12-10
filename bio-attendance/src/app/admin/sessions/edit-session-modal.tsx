@@ -43,16 +43,25 @@ export function EditSessionModal({ open, onOpenChange, session, courses, onUpdat
 
   useEffect(() => {
     if (session) {
-      const dateStr =
-        session._creationTime instanceof Date
-          ? session._creationTime.toISOString().split("T")[0]
-          : new Date(session._creationTime).toISOString().split("T")[0]
+      // Convert timestamps to date and time strings
+      const startDate = new Date(session.startsAt)
+      const endDate = new Date(session.endsAt)
+      
+      // Format date as YYYY-MM-DD
+      const dateStr = startDate.toISOString().split("T")[0]
+      
+      // Format time as HH:MM (24-hour format for input type="time")
+      const formatTime = (date: Date) => {
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        return `${hours}:${minutes}`
+      }
 
       setFormData({
         courseCode: session.courseUnitCode,
         date: dateStr,
-        startTime: session.startsAt.toString(),
-        endTime: session.endsAt.toString(),
+        startTime: formatTime(startDate),
+        endTime: formatTime(endDate),
         location: session.location,
       })
     }
@@ -64,14 +73,24 @@ export function EditSessionModal({ open, onOpenChange, session, courses, onUpdat
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Convert date and time strings back to timestamps
+    const [startHours, startMinutes] = formData.startTime.split(':').map(Number)
+    const [endHours, endMinutes] = formData.endTime.split(':').map(Number)
+    
+    const startDate = new Date(formData.date)
+    startDate.setHours(startHours, startMinutes, 0, 0)
+    
+    const endDate = new Date(formData.date)
+    endDate.setHours(endHours, endMinutes, 0, 0)
+
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     onUpdateSession(session._id, {
       courseUnitCode: formData.courseCode,
       sessionTitle: session.sessionTitle,
-      startsAt: Number(formData.startTime),
-      endsAt: Number(formData.endTime),
+      startsAt: startDate.getTime(),
+      endsAt: endDate.getTime(),
       location: formData.location,
     })
 
