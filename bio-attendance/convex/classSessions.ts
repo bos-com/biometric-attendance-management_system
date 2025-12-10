@@ -201,3 +201,100 @@ export const getSessionsByLecturer = query({
                 return sessions;
         }
 });
+
+export const updateSession = mutation({
+        args: {
+                sessionId: v.id("attendance_sessions"),
+                courseUnitCode: v.optional(v.string()),
+                sessionTitle: v.optional(v.string()),
+                description: v.optional(v.string()),
+                startsAt: v.optional(v.number()),
+                endsAt: v.optional(v.number()),
+                location: v.optional(v.string()),
+                autoClose: v.optional(v.boolean()),
+                autoStart: v.optional(v.boolean()),
+        },
+        handler: async (ctx, args) => {
+                const session = await ctx.db.get(args.sessionId);
+                if (!session) {
+                        return {
+                                success: false,
+                                message: "Session not found",
+                                status: 404
+                        };
+                }
+
+                // Only allow editing scheduled sessions
+                if (session.status !== "scheduled") {
+                        return {
+                                success: false,
+                                message: "Cannot edit a session that is live or closed",
+                                status: 400
+                        };
+                }
+
+                // Validate end time is after start time if both are provided
+                const newStartsAt = args.startsAt ?? session.startsAt;
+                const newEndsAt = args.endsAt ?? session.endsAt;
+                if (newEndsAt <= newStartsAt) {
+                        return {
+                                success: false,
+                                message: "Session end must be after start",
+                                status: 400
+                        };
+                }
+
+                const updates: Partial<typeof session> = {};
+                if (args.courseUnitCode !== undefined) updates.courseUnitCode = args.courseUnitCode;
+                if (args.sessionTitle !== undefined) updates.sessionTitle = args.sessionTitle;
+                if (args.description !== undefined) updates.description = args.description;
+                if (args.startsAt !== undefined) updates.startsAt = args.startsAt;
+                if (args.endsAt !== undefined) updates.endsAt = args.endsAt;
+                if (args.location !== undefined) updates.location = args.location;
+                if (args.autoClose !== undefined) updates.autoClose = args.autoClose;
+                if (args.autoStart !== undefined) updates.autoStart = args.autoStart;
+
+                await ctx.db.patch(args.sessionId, updates);
+
+                return {
+                        success: true,
+                        message: "Session updated successfully",
+                        status: 200
+                };
+        }
+});
+
+export const deleteSession = mutation({
+        args: {
+                sessionId: v.id("attendance_sessions"),
+        },
+        handler: async (ctx, args) => {
+                const session = await ctx.db.get(args.sessionId);
+                if (!session) {
+                        return {
+                                success: false,
+                                message: "Session not found",
+                                status: 404
+                        };
+                }
+
+                // Delete associated attendance records first
+                const attendanceRecords = await ctx.db
+                        .query("attendance_records")
+                        .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+                        .collect();
+
+                for (const record of attendanceRecords) {
+                        await ctx.db.delete(record._id);
+                }
+
+                // Delete the session
+                await ctx.db.delete(args.sessionId);
+
+                return {
+                        success: true,
+                        message: "Session deleted successfully",
+                        status: 200
+                };
+        }
+});

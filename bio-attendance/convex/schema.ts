@@ -32,7 +32,7 @@ export default defineSchema({
         name: v.string(),
         semester: v.string(),
         programId: v.id("programs"),
-        lecturerId: v.id("lecturers"),
+        lecturerId: v.optional(v.id("lecturers")),
         hours_per_session: v.number(),
     }).index("by_courseCode", ["code"])
     .index("by_lecturer", ["lecturerId"]),

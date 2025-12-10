@@ -222,7 +222,7 @@ export function SessionDetailDrawer({
         </div>
 
         {/* Student List */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-4 space-y-3 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -254,7 +254,7 @@ export function SessionDetailDrawer({
             </Tabs>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-0">
             <div className="p-4 space-y-2">
               {filteredStudents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">

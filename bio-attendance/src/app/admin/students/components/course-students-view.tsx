@@ -75,7 +75,7 @@ export function CourseStudentsView({
 
 
   return (
-    <div className="h-full w-full  bg-green-50/80">
+    <div className="min-h-full w-full bg-green-50/80 pb-8">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background border-b">
         <div className="container mx-auto px-4 py-4 max-w-7xl">
