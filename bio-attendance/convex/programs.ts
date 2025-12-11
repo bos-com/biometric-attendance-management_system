@@ -39,6 +39,18 @@ export const getCourseUnitByCode = query({
         }
 });
 
+export const getCourseUnitsByProgram = query({
+        args: {
+                programId: v.id("programs"),
+        },
+        handler: async (ctx, args) => {
+                const courseUnits = await ctx.db.query("course_units")
+                        .withIndex("by_program", (q) => q.eq("programId", args.programId))
+                        .collect();
+                return courseUnits;
+        }
+});
+
 export const getCourseUnitByLecturer = query({
         args: {
                 lecturerId: v.id("lecturers"),

@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { embedImage } from "../Embeddings/embedImage"
 import {
@@ -40,9 +39,8 @@ const StudentRegistrationPage = () => {
   const [middleName, setMiddleName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
-  const [program, setProgram] = useState("")
+  const [programId, setProgramId] = useState<Id<"programs"> | null>(null)
   const [gender, setGender] = useState("")
-  const [courseUnitInput, setCourseUnitInput] = useState("")
   const [courseUnits, setCourseUnits] = useState<string[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -53,15 +51,31 @@ const StudentRegistrationPage = () => {
     status: "idle",
   })
 
+  // Fetch course units for the selected program
+  const courseUnitsForProgram = useQuery(
+    api.programs.getCourseUnitsByProgram,
+    programId ? { programId } : "skip"
+  );
+
+  // Get the selected program's name for saving
+  const selectedProgram = programs?.find(p => p._id === programId);
+
   const MAX_PHOTOS = 5
 
+  // Handle program change - clear selected course units when program changes
+  const handleProgramChange = (newProgramId: string) => {
+    setProgramId(newProgramId as Id<"programs">);
+    setCourseUnits([]); // Clear course units when program changes
+  };
 
-  const handleAddCourseUnit = () => {
-    const trimmed = courseUnitInput.trim()
-    if (!trimmed || courseUnits.includes(trimmed)) return
-    setCourseUnits((prev) => [...prev, trimmed])
-    setCourseUnitInput("")
-  }
+  // Toggle course unit selection
+  const toggleCourseUnit = (courseCode: string) => {
+    setCourseUnits(prev => 
+      prev.includes(courseCode)
+        ? prev.filter(code => code !== courseCode)
+        : [...prev, courseCode]
+    );
+  };
 
   const removeCourseUnit = (unit: string) => {
     setCourseUnits((prev) => prev.filter((item) => item !== unit))
@@ -162,7 +176,7 @@ const StudentRegistrationPage = () => {
         middleName: middleName.trim() || undefined,
         lastName: lastName.trim(),
         email: email.trim() ,
-        program: program.trim(),
+        program: selectedProgram?.name ?? "",
         gender: gender || undefined,
         courseUnits,
         photoDataUrl: undefined,
@@ -180,7 +194,7 @@ const StudentRegistrationPage = () => {
       setMiddleName("")
       setLastName("")
       setEmail("")
-      setProgram("")
+      setProgramId(null)
       setGender("")
       setCourseUnits([])
       setPhotoPreviews([])
@@ -259,15 +273,15 @@ const StudentRegistrationPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="program" className="flex items-center gap-2">
                     <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                    Program
+                    Program <span className="text-red-500">*</span>
                   </Label>
-                    <Select value={program} onValueChange={setProgram} >
+                    <Select value={programId ?? ""} onValueChange={handleProgramChange} >
                     <SelectTrigger className="h-11 w-full">
                       <SelectValue placeholder="Select program" />
                     </SelectTrigger>
                     <SelectContent>
                       {programs && programs.map((prog) => (
-                        <SelectItem key={prog._id} value={prog.name}>{prog.name}</SelectItem>
+                        <SelectItem key={prog._id} value={prog._id}>{prog.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -353,52 +367,109 @@ const StudentRegistrationPage = () => {
                 </div>
                 <div>
                   <CardTitle className="text-lg">Course Units</CardTitle>
-                  <CardDescription>Add course units the student is enrolled in</CardDescription>
+                  <CardDescription>
+                    {programId 
+                      ? "Select the course units the student is enrolled in"
+                      : "Please select a program first to see available course units"
+                    }
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex gap-3">
-                <Input
-                  value={courseUnitInput}
-                  onChange={(event) => setCourseUnitInput(event.target.value)}
-                  placeholder="e.g. CSC2104"
-                  className="h-11 flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddCourseUnit()
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddCourseUnit}
-                  className="h-11 gap-2 bg-transparent"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Unit
-                </Button>
-              </div>
+              {!programId ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <AlertCircle className="mr-2 h-5 w-5" />
+                  <span>Select a program to view available course units</span>
+                </div>
+              ) : courseUnitsForProgram === undefined ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">Loading course units...</span>
+                </div>
+              ) : courseUnitsForProgram.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <AlertCircle className="mr-2 h-5 w-5" />
+                  <span>No course units found for this program</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Course Units Grid */}
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {courseUnitsForProgram.map((unit) => {
+                      const isSelected = courseUnits.includes(unit.code);
+                      return (
+                        <div
+                          key={unit._id}
+                          role="button"
+                          tabIndex={0}
+                          className={`flex items-start space-x-3 rounded-lg border p-3 transition-colors cursor-pointer hover:bg-slate-50 ${
+                            isSelected ? "border-primary bg-primary/5" : "border-gray-200"
+                          }`}
+                          onClick={() => toggleCourseUnit(unit.code)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleCourseUnit(unit.code);
+                            }
+                          }}
+                        >
+                          {/* Custom checkbox visual */}
+                          <div
+                            className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-input bg-transparent"
+                            }`}
+                          >
+                            {isSelected && (
+                              <CheckCircle2 className="h-3 w-3" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="block text-sm font-medium text-foreground">
+                              {unit.code}
+                            </span>
+                            <p className="text-xs text-muted-foreground truncate" title={unit.name}>
+                              {unit.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {unit.semester}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-              {courseUnits.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {courseUnits.map((unit) => (
-                    <span
-                      key={unit}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                    >
-                      {unit}
-                      <button
-                        type="button"
-                        onClick={() => removeCourseUnit(unit)}
-                        className="rounded-full p-0.5 transition-colors hover:bg-primary/20"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
+                  {/* Selected Course Units Summary */}
+                  {courseUnits.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Selected course units ({courseUnits.length}):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {courseUnits.map((unit) => (
+                          <span
+                            key={unit}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                          >
+                            {unit}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeCourseUnit(unit);
+                              }}
+                              className="rounded-full p-0.5 transition-colors hover:bg-primary/20"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

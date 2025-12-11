@@ -35,7 +35,8 @@ export default defineSchema({
         lecturerId: v.optional(v.id("lecturers")),
         hours_per_session: v.number(),
     }).index("by_courseCode", ["code"])
-    .index("by_lecturer", ["lecturerId"]),
+    .index("by_lecturer", ["lecturerId"])
+    .index("by_program", ["programId"]),
 
   faceEmbeddings: defineTable({
     studentId: v.id("students"),

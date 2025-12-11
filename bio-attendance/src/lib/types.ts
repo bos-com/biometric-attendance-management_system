@@ -47,7 +47,7 @@ export type CourseUnit = {
   name: string;
   semester: string;
   programId: Id<"programs">;
-  lecturerId: Id<"lecturers">;
+  lecturerId?: Id<"lecturers">;
   hours_per_session: number;
 };
 

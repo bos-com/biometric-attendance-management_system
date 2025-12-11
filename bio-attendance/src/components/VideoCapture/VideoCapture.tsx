@@ -64,22 +64,37 @@ const VideoCapture = ({ sessionId, onStudentRecognized }: VideoCaptureProps) => 
     });
   }, []);
 
-  // Load labeled faces from student images (now filtered by course unit)
+  // Load labeled faces - use pre-computed descriptors when available, fall back to image processing
   useEffect(() => {
     if (!modelsLoaded || !studentsForCourse || studentsForCourse.length === 0) return;
 
-    const loadLabeledImages = async () => {
-      const students = studentsForCourse;
-      console.log(`Loading labeled images for ${students.length} students in course ${courseUnitCode}`);
+    const loadLabeledDescriptors = async () => {
+      console.log(`Processing ${studentsForCourse.length} students for course ${courseUnitCode}`);
 
-      const labeledDescriptors = await Promise.all(
-        students.map(async (student) => {
-          console.log("Processing student:", student.studentImages);
-          // Store studentId|firstName lastName for tracking
+      // Separate students with and without pre-computed descriptors
+      const studentsWithDescriptors = studentsForCourse.filter(
+        (student) => student.descriptor && student.descriptor.length === 128
+      );
+      const studentsWithoutDescriptors = studentsForCourse.filter(
+        (student) => !student.descriptor || student.descriptor.length !== 128
+      );
+
+      console.log(`Found ${studentsWithDescriptors.length} students with pre-computed descriptors`);
+      console.log(`Found ${studentsWithoutDescriptors.length} students requiring image processing`);
+
+      // Fast path: Use pre-computed descriptors
+      const preComputedDescriptors = studentsWithDescriptors.map((student) => {
+        const label = `${student.studentId}|${student.firstName} ${student.lastName}`;
+        const descriptor = new Float32Array(student.descriptor);
+        return new faceapi.LabeledFaceDescriptors(label, [descriptor]);
+      });
+
+      // Slow path: Process images for students without descriptors
+      const imageProcessedDescriptors = await Promise.all(
+        studentsWithoutDescriptors.map(async (student) => {
           const label = `${student.studentId}|${student.firstName} ${student.lastName}`;
           const descriptions: Float32Array[] = [];
 
-          // Process each image URL for this student
           const imageUrls = student.studentImages ?? [];
           for (const url of imageUrls) {
             if (!url) continue;
@@ -107,19 +122,21 @@ const VideoCapture = ({ sessionId, onStudentRecognized }: VideoCaptureProps) => 
         })
       );
 
-      const validDescriptors = labeledDescriptors.filter(
-        (d): d is faceapi.LabeledFaceDescriptors => d !== null
-      );
+      // Combine both sets of descriptors
+      const allDescriptors = [
+        ...preComputedDescriptors,
+        ...imageProcessedDescriptors.filter((d): d is faceapi.LabeledFaceDescriptors => d !== null),
+      ];
 
-      if (validDescriptors.length > 0) {
-        console.log("Created FaceMatcher with", validDescriptors.length, "labeled faces");
-        // Threshold of 0.5 means: if distance > 0.5, return "unknown"
-        // Lower = stricter matching, Higher = more lenient
-        setFaceMatcher(new faceapi.FaceMatcher(validDescriptors, 0.5));
+      if (allDescriptors.length > 0) {
+        console.log(`Created FaceMatcher with ${allDescriptors.length} total face descriptors`);
+        setFaceMatcher(new faceapi.FaceMatcher(allDescriptors, 0.5));
+      } else {
+        console.warn("No valid face descriptors found. Students may need to register with photos.");
       }
     };
 
-    loadLabeledImages();
+    loadLabeledDescriptors();
   }, [modelsLoaded, studentsForCourse, courseUnitCode]);
 
   // Handle recording attendance when a student is recognized
