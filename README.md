@@ -3,25 +3,25 @@
 
 A simple, self-hosted attendance management system built with a Next.js frontend, Convex for backend/data, and facial recognition for enrollment and verification (webcam-based). This repository contains the code and resources to run a local attendance server (web), enroll users' faces, and generate attendance reports.
 
-Table of contents
-- About
-- Key features
-- Tech stack
-- Quick start
-- Configuration
-- Usage
-- Troubleshooting
-- Project structure
-- Tests
-- Contributing
-- License
-- Contact
+## Table of Contents
+* [About](#about)
+* [Key Features](#key-features)
+* [Tech Stack](#tech-stack)
+* [Quick Start](#quick-start)
+* [Configuration](#configuration)
+* [Usage](#usage)
+* [Troubleshooting](#troubleshooting)
+* [Project Structure](#project-structure)
+* [Tests](#tests)
+* [Contributing](#contributing)
+* [License](#license)
+* [Contact](#contact)
 
-About
+## About
 -----
 This project provides an attendance management solution using biometric facial recognition. It is designed for small organizations (schools, offices, clubs) that want reliable, tamper-resistant attendance logging without fingerprint hardware — everything runs from a browser (webcam) and a Convex backend.
 
-Key features
+## Key features
 ------------
 - Face enrollment (capture face data via webcam)
 - Face verification for check-in / check-out (live webcam)
@@ -31,31 +31,25 @@ Key features
 - Role-based access (Admin / Staff / Student) — optional depending on implementation
 - Local-first flow with Convex as the backend datastore and serverless functions
 
-Tech stack
+## Tech stack
 ----------
-- Frontend: Next.js (React)
-- Backend / Database: Convex (functions + document store)
-- Facial recognition: browser-based models (e.g., face-api.js / TensorFlow.js or an external provider if configured)
-- Authentication: NextAuth or a custom auth provider (project-specific)
-- Database for exports: CSV/Excel generation libraries on the server or client
-- Other tools: Node.js (v18+ recommended), npm or yarn, optional Docker for deployment
+| Component | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | Next.js 14/15 | Handles client-side rendering and the webcam interface. |
+| **Backend / DB** | Convex | Manages real-time data synchronization and serverless functions. |
+| **Biometrics** | face-api.js | Performs TensorFlow-based facial landmark detection and extraction. |
+| **Language** | TypeScript | Ensures full-stack type safety and reduces runtime errors. |
 
-Quick start
+## Quick start
 -----------
-1. Clone the repository
-   ```bash
-   git clone https://github.com/bos-com/BIOMETRIC-ATTENDENCE-MANAGEMENT-SYSTEM.git
-   cd BIOMETRIC-ATTENDENCE-MANAGEMENT-SYSTEM
-   ```
+### 1. Clone & Install
+```bash
+git clone https://github.com/bos-com/biometric-attendance-management_system.git
+cd biometric-attendance-management_system
+npm install
+ ```
 
-2. Install dependencies
-   ```bash
-   npm install
-   # or
-   yarn
-   ```
-
-3. Configure environment variables
+2. Configure environment variables
    - Copy .env.example to .env.local (or create .env.local) and set the values:
      - NEXT_PUBLIC_CONVEX_URL: your Convex deployment URL (if using hosted Convex)
      - CONVEX_API_KEY (if your setup requires a key for server-side usage)
@@ -69,7 +63,7 @@ Quick start
    NEXTAUTH_URL=http://localhost:3000
    ```
 
-4. Run Convex locally (development)
+3. Run Convex locally (development)
    - If you have Convex functions in the repo and want to run locally:
    ```bash
    npx convex dev
@@ -79,7 +73,7 @@ Quick start
    npx convex deploy
    ```
 
-5. Start the Next.js app
+4. Start the Next.js app
    ```bash
    npm run dev
    # or
@@ -87,7 +81,7 @@ Quick start
    ```
    Open http://localhost:3000
 
-Configuration
+## Configuration
 -------------
 - .env.local / Vercel environment variables:
   - NEXT_PUBLIC_CONVEX_URL — Convex deployment URL
@@ -107,7 +101,7 @@ Facial recognition details
   - Compare embeddings to match users at check-in
 - If you prefer a cloud provider (AWS Rekognition, Azure Face API, etc.), you can swap the client-side logic to call your provider; update env variables and server-side functions accordingly.
 
-Usage
+## Usage
 -----
 Typical workflow:
 1. Admin signs in and enrolls users by capturing face data (one or more captures recommended).
@@ -116,7 +110,7 @@ Typical workflow:
 4. Matches are logged as attendance entries (timestamp, user id).
 5. Admins generate reports (daily, monthly, per-user) and export them as CSV/Excel.
 
-Troubleshooting
+## Troubleshooting
 ---------------
 - If camera is not accessible:
   - Ensure your browser has permission to use the camera.
@@ -132,7 +126,7 @@ Troubleshooting
   - Ensure NEXT_PUBLIC_CONVEX_URL and any Convex secrets are set correctly.
   - Run npx convex dev to test the backend locally.
 
-Project structure (updated for Next.js + Convex)
+## Project structure (updated for Next.js + Convex)
 -----------------------------
 - /app or /src - Next.js application code (pages/app router or pages directory)
 - /components - React components (camera, enrollment modal, attendance UI)
@@ -142,7 +136,7 @@ Project structure (updated for Next.js + Convex)
 - package.json - dependencies and scripts
 - README.md - this file
 
-Tests
+## Tests
 -----
 If tests exist, run them with:
 ```bash
@@ -155,7 +149,7 @@ Consider adding tests for:
 - Matching logic (unit tests for embedding comparison)
 - API/Convex function behavior
 
-Contributing
+## Contributing
 ------------
 Contributions are welcome. Suggested process:
 1. Fork the repository
@@ -164,13 +158,17 @@ Contributions are welcome. Suggested process:
 4. Push and open a Pull Request explaining the change
 5. Add tests for new functionality
 
-License
+## License
 -------
 This project is available under the MIT License. Replace with the actual license if different.
 
-Contact
+**Future Work**
+1. Integration of Liveness Detection to prevent spoofing via photos.
+2. SMS notifications for late arrivals using Twilio.
+
+## Contact
 -------
-Maintainer: (please add maintainer name and contact email or GitHub handle)
+Maintainer: Akatwijuka Elia (GitHub Profile)
 
 Acknowledgements
 ----------------
